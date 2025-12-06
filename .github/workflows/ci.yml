@@ -37,10 +37,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # Install CPU-only torch first to save massive space
+        # 1. Force CPU-only Torch (saves ~2GB)
         pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
-        # Install other requirements without cache and ignoring torch (since we have cpu version)
-        if [ -f requirements.txt ]; then pip install -r requirements.txt --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu; fi
+        # 2. Force TensorFlow CPU (saves ~500MB+)
+        pip install tensorflow-cpu --no-cache-dir
+        # 3. Install requirements with CPU index preference
+        if [ -f requirements.txt ]; then pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu --no-cache-dir; fi
         pip install flake8 pytest pytest-asyncio --no-cache-dir
         
     - name: Lint with flake8
