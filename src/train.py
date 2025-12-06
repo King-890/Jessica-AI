@@ -31,7 +31,7 @@ def main():
     # 2. Prepare Data
     print("📊 Preparing Dataset...")
     # In cloud, we might check for a specific data folder
-    builder = DatasetBuilder()
+    builder = DatasetBuilder(brain.tokenizer)
     # Force some dummy data if empty for testing, or load from file
     if len(builder.interactions) == 0:
         print("   Warning: No interaction history found. Utilizing dummy data for dry-run.")
