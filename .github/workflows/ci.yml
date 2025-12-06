@@ -37,12 +37,22 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # 1. Force CPU-only Torch (saves ~2GB)
+        
+        # 0. Strip Heavy Requirements to prevent GPU downloads
+        # Remove tf-keras (pulls tensorflow GPU)
+        sed -i '/tf-keras/d' requirements.txt
+        # Remove sentence-transformers (pulls torch GPU if not careful)
+        sed -i '/sentence-transformers/d' requirements.txt
+        
+        # 1. Install CPU Enforced Libraries
         pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
-        # 2. Force TensorFlow CPU (saves ~500MB+)
         pip install tensorflow-cpu --no-cache-dir
-        # 3. Install requirements with CPU index preference
-        if [ -f requirements.txt ]; then pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu --no-cache-dir; fi
+        # Re-add sentence-transformers (it should pick up the heavily-installed torch-cpu)
+        pip install sentence-transformers --no-cache-dir
+        
+        # 2. Install remaining requirements
+        if [ -f requirements.txt ]; then pip install -r requirements.txt --no-cache-dir; fi
+        
         pip install flake8 pytest pytest-asyncio --no-cache-dir
         
     - name: Lint with flake8
