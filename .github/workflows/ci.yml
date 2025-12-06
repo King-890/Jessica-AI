@@ -38,24 +38,27 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         
-        # 1. Strip Heavy Deps from requirements.txt
-        # We will install them manually with the correct CPU index
-        sed -i '/torch/d' requirements.txt
-        sed -i '/sentence-transformers/d' requirements.txt
-        sed -i '/tf-keras/d' requirements.txt
-        sed -i '/tensorflow/d' requirements.txt
+        # DRASTIC OPTIMIZATION: Do NOT use requirements.txt
+        # It pulls in way too many GPU blobs (nvidia-*, triton, etc) that fill the 14GB runner.
+        # We manually install ONLY what is needed for tests + CPU torch.
         
-        # 2. Install CPU-only replacements
-        # Group 1: PyTorch Ecosystem (Strictly from CPU wheelhouse)
+        # 1. Core Light Deps
+        pip install fastapi uvicorn pydantic pydantic-settings python-dotenv pyyaml requests psutil beautifulsoup4 croniter --no-cache-dir
+        
+        # 2. CPU Torch & Sentence Transformers
         pip install torch torchvision torchaudio sentence-transformers --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
         
-        # Group 2: TensorFlow Ecosystem
+        # 3. CPU TensorFlow
         pip install tensorflow-cpu --no-cache-dir
         
-        # 3. Install remaining requirements
-        # We use --extra-index-url just in case, but heavy stuff is already installed
-        if [ -f requirements.txt ]; then pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu --no-cache-dir; fi
+        # 4. Light versions of heavy tools (if possible) or skip
+        # ChromaDB pulls everything. We install it last and hope.
+        # Actually, for CI we might want to MOCK these or install minimal.
+        # Let's try installing chromadb but strictly handling its deps via top-level constraints if supported.
+        # For now, just install it and pray the previous steps blocked the GPU wheels.
+        pip install chromadb --no-cache-dir
         
+        # 5. Dev/Test Tools
         pip install flake8 pytest pytest-asyncio --no-cache-dir
         
     - name: Lint with flake8
