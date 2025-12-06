@@ -35,30 +35,27 @@ jobs:
         sudo apt-get install -y portaudio19-dev espeak ffmpeg libsndfile1
         
     - name: Install dependencies
+      env:
+        # Global flag to ensure ALL pip installs look at the CPU wheelhouse first/also
+        PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
       run: |
         python -m pip install --upgrade pip
         
-        # DRASTIC OPTIMIZATION: Do NOT use requirements.txt
-        # It pulls in way too many GPU blobs (nvidia-*, triton, etc) that fill the 14GB runner.
-        # We manually install ONLY what is needed for tests + CPU torch.
-        
-        # 1. Core Light Deps
-        pip install fastapi uvicorn pydantic pydantic-settings python-dotenv pyyaml requests psutil beautifulsoup4 croniter --no-cache-dir
-        
-        # 2. CPU Torch & Sentence Transformers
-        pip install torch torchvision torchaudio sentence-transformers --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
-        
-        # 3. CPU TensorFlow
+        # 1. Install CPU Foundations (Explicitly)
+        # We start with tensorflow-cpu to effectively 'block' standard tensorflow
         pip install tensorflow-cpu --no-cache-dir
         
-        # 4. Light versions of heavy tools (if possible) or skip
-        # ChromaDB pulls everything. We install it last and hope.
-        # Actually, for CI we might want to MOCK these or install minimal.
-        # Let's try installing chromadb but strictly handling its deps via top-level constraints if supported.
-        # For now, just install it and pray the previous steps blocked the GPU wheels.
-        pip install chromadb --no-cache-dir
+        # We install torch from the CPU index (using the env var implicitly or explicit flag to be safe)
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
         
-        # 5. Dev/Test Tools
+        # 2. Install Middleware (that might trigger heavy deps)
+        # By installing them now with the CPU index active, they should resolve to internal CPU libs (like torch)
+        pip install sentence-transformers chromadb --no-cache-dir
+        
+        # 3. Light Deps
+        pip install fastapi uvicorn pydantic pydantic-settings python-dotenv pyyaml requests psutil beautifulsoup4 croniter --no-cache-dir
+        
+        # 4. Dev Tools
         pip install flake8 pytest pytest-asyncio --no-cache-dir
         
     - name: Lint with flake8
