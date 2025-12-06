@@ -38,20 +38,23 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         
-        # 0. Strip Heavy Requirements to prevent GPU downloads
-        # Remove tf-keras (pulls tensorflow GPU)
-        sed -i '/tf-keras/d' requirements.txt
-        # Remove sentence-transformers (pulls torch GPU if not careful)
+        # 1. Strip Heavy Deps from requirements.txt
+        # We will install them manually with the correct CPU index
+        sed -i '/torch/d' requirements.txt
         sed -i '/sentence-transformers/d' requirements.txt
+        sed -i '/tf-keras/d' requirements.txt
+        sed -i '/tensorflow/d' requirements.txt
         
-        # 1. Install CPU Enforced Libraries
-        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+        # 2. Install CPU-only replacements
+        # Group 1: PyTorch Ecosystem (Strictly from CPU wheelhouse)
+        pip install torch torchvision torchaudio sentence-transformers --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+        
+        # Group 2: TensorFlow Ecosystem
         pip install tensorflow-cpu --no-cache-dir
-        # Re-add sentence-transformers (it should pick up the heavily-installed torch-cpu)
-        pip install sentence-transformers --no-cache-dir
         
-        # 2. Install remaining requirements
-        if [ -f requirements.txt ]; then pip install -r requirements.txt --no-cache-dir; fi
+        # 3. Install remaining requirements
+        # We use --extra-index-url just in case, but heavy stuff is already installed
+        if [ -f requirements.txt ]; then pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu --no-cache-dir; fi
         
         pip install flake8 pytest pytest-asyncio --no-cache-dir
         
