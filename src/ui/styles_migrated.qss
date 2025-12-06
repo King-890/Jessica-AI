@@ -1,0 +1,117 @@
+/* Neon Horizon Theme */
+
+/* Global Reset */
+QWidget {
+    background-color: #0a0a12;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    font-size: 14px;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    border: none;
+    background: #16161e;
+    width: 10px;
+    margin: 0px 0px 0px 0px;
+}
+QScrollBar::handle:vertical {
+    background: #3e3e4e;
+    min-height: 20px;
+    border-radius: 5px;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* Chat Area */
+QTextEdit {
+    background-color: #16161e;
+    border: none;
+    border-radius: 8px;
+    padding: 15px;
+    selection-background-color: #00f3ff;
+    selection-color: #000000;
+}
+
+/* Input Field */
+QLineEdit {
+    background-color: #16161e;
+    border: 1px solid #3e3e4e;
+    border-radius: 20px;
+    padding: 12px 20px;
+    color: #e0e0e0;
+    font-size: 14px;
+}
+QLineEdit:focus {
+    border: 1px solid #00f3ff;
+    background-color: #1a1a24;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #1a1a24;
+    border: 1px solid #00f3ff;
+    border-radius: 6px;
+    color: #00f3ff;
+    padding: 8px 16px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #00f3ff;
+    color: #0a0a12;
+}
+QPushButton:pressed {
+    background-color: #00c2cc;
+}
+QPushButton:disabled {
+    border-color: #3e3e4e;
+    color: #3e3e4e;
+}
+
+/* Sidebar */
+QWidget#Sidebar {
+    background-color: #0f0f16;
+    border-right: 1px solid #1f1f2e;
+}
+
+QPushButton#SidebarButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #a0a0a0;
+    padding: 10px;
+    text-align: left;
+}
+QPushButton#SidebarButton:hover {
+    background-color: #1f1f2e;
+    color: #e0e0e0;
+}
+QPushButton#SidebarButton:checked {
+    background-color: #1f1f2e;
+    color: #00f3ff;
+    border-left: 2px solid #00f3ff;
+}
+
+/* Context Panel */
+QWidget#ContextPanel {
+    background-color: #0f0f16;
+    border-left: 1px solid #1f1f2e;
+}
+
+QLabel#HeaderLabel {
+    font-size: 18px;
+    font-weight: bold;
+    color: #00f3ff;
+    margin-bottom: 10px;
+}
+
+QLabel#SectionLabel {
+    font-size: 12px;
+    font-weight: bold;
+    color: #7000ff;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}

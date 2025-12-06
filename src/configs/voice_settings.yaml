@@ -1,0 +1,6 @@
+enable_voice_mode: true
+wake_phrase: "hey jessica"
+stt_adapter: "speech_recognition"  # options: speech_recognition, whisper
+whisper_model: "base"
+tts_rate: 180
+tts_volume: 1.0

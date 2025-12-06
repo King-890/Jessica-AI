@@ -1,0 +1,26 @@
+{
+  "name": "Jessica AI Self-Test",
+  "description": "Monitor Jessica AI source code and configuration",
+  "enabled": true,
+  "steps": [],
+  "probes": [
+    {
+      "type": "file_exists",
+      "name": "Config File Check",
+      "path": "config.yaml",
+      "interval": 10
+    },
+    {
+      "type": "file_exists",
+      "name": "Main Script Check",
+      "path": "src/main.py",
+      "interval": 10
+    },
+    {
+      "type": "process_running",
+      "name": "Python Process Check",
+      "process_name": "python",
+      "interval": 10
+    }
+  ]
+}

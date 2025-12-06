@@ -1,0 +1,8 @@
+{
+  "intents": [
+    { "name": "open_browser", "keywords": ["open browser", "launch browser"], "route": "skills.system_control" },
+    { "name": "search_news", "keywords": ["search news", "latest news"], "route": "skills.web_tools" },
+    { "name": "build_unity", "keywords": ["build unity", "unity project"], "route": "skills.unity_builder" },
+    { "name": "open_vscode", "keywords": ["open code", "open vscode"], "route": "skills.system_control" }
+  ]
+}

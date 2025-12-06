@@ -1,0 +1,6 @@
+{
+  "skills": [
+    { "name": "Unity Builder", "entry": "unity_builder" },
+    { "name": "Web Deployer", "entry": "web_deployer" }
+  ]
+}

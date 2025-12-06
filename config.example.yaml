@@ -1,0 +1,67 @@
+anthropic_api_key: "YOUR_API_KEY_HERE"
+
+# Backend API Settings
+api:
+  host: "127.0.0.1"
+  port: 5050
+  enforce_local_only: true
+  require_api_token: false
+  api_token: "YOUR_API_TOKEN_HERE"
+  allowed_origins:
+    - "http://127.0.0.1"
+    - "http://localhost"
+    - "http://localhost:5173"
+    - "http://localhost:5174"
+    - "http://localhost:5175"
+
+# Voice/STT Configuration
+voice:
+  enable_voice_mode: false
+  wake_phrase: "hey jessica"
+  stt_adapter: "speech_recognition"  # Options: speech_recognition, whisper, vosk
+  whisper_model: "base"  # Options: tiny, base, small, medium, large
+  ffmpeg_path: "C:\\ffmpeg\\bin\\ffmpeg.exe"  # Optional, for audio conversion
+
+# Auto-update and Scheduling
+updates:
+  enable_auto_update: false
+  auto_update_interval_hours: 24
+  enable_cron_update: false
+  cron_update_expression: "0 3 * * *"  # 3 AM daily
+
+# Knowledge Base
+knowledge:
+  enable_knowledge_auto_update: false
+  knowledge_auto_update_interval_hours: 168  # Weekly
+
+# Watchdog (File Monitoring)
+watchdog:
+  enable_watchdog: false
+
+# Google Custom Search Engine (Optional)
+google_cse:
+  api_key: ""
+  cx: ""
+
+# LiveKit (Optional - for voice streaming)
+livekit:
+  url: ""
+  api_key: ""
+  api_secret: ""
+
+# Tauri (Optional)
+tauri:
+  enabled: false
+  auto_start: false
+
+mcp_servers:
+  filesystem:
+    command: "python"
+    args: ["src/mcp_servers/filesystem_server.py", "d:/Jessica AI"]
+  shell:
+    command: "python"
+    args: ["src/mcp_servers/shell_server.py"]
+  memory:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+

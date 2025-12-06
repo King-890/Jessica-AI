@@ -1,0 +1,94 @@
+import os
+from typing import Any, Dict, List, Optional
+
+try:
+    from supabase import create_client, Client  # type: ignore
+except Exception:
+    create_client = None
+    Client = object  # type: ignore
+
+
+_client: Optional[Client] = None
+
+
+def get_client() -> Optional[Client]:
+    global _client
+    if _client is not None:
+        return _client
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+    if not url or not key or not create_client:
+        return None
+    try:
+        _client = create_client(url, key)
+    except Exception:
+        _client = None
+    return _client
+
+
+def push_memory(data: Dict[str, Any]) -> bool:
+    """Insert an interaction into Supabase 'interactions' table."""
+    cli = get_client()
+    if not cli:
+        return False
+    try:
+        cli.table("interactions").insert(data).execute()
+        return True
+    except Exception:
+        return False
+
+
+def fetch_memory(limit: int = 100) -> List[Dict[str, Any]]:
+    """Fetch latest interactions from Supabase."""
+    cli = get_client()
+    if not cli:
+        return []
+    try:
+        resp = cli.table("interactions").select("*").order("timestamp", desc=True).limit(limit).execute()
+        return list(resp.data or [])  # type: ignore
+    except Exception:
+        return []
+
+
+def sync_config(settings_dict: Dict[str, Any]) -> bool:
+    """Upsert user settings to Supabase 'settings' table."""
+    cli = get_client()
+    if not cli:
+        return False
+    try:
+        cli.table("settings").upsert(settings_dict).execute()
+        return True
+    except Exception:
+        return False
+
+
+def upload_backup(zip_path: str, user_id: Optional[str] = None) -> bool:
+    """Upload a backup zip to Supabase storage bucket 'backups'."""
+    cli = get_client()
+    if not cli:
+        return False
+    try:
+        bucket = cli.storage.from_("backups")
+        with open(zip_path, "rb") as f:
+            name = os.path.basename(zip_path)
+            path = name if not user_id else f"{user_id}/{name}"
+            bucket.upload(path, f.read(), {
+                "contentType": "application/zip",
+                "upsert": True,
+            })
+        return True
+    except Exception:
+        return False
+
+
+def fetch_updates_metadata() -> Dict[str, Any]:
+    """Retrieve latest app update metadata from table 'app_updates'."""
+    cli = get_client()
+    if not cli:
+        return {"status": "disabled"}
+    try:
+        resp = cli.table("app_updates").select("*").order("created_at", desc=True).limit(1).execute()
+        items = list(resp.data or [])  # type: ignore
+        return {"status": "ok", "latest": items[0] if items else None}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

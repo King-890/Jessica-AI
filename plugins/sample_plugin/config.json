@@ -1,0 +1,6 @@
+{
+  "id": "sample_plugin",
+  "name": "Sample Plugin",
+  "version": "0.1.0",
+  "category": "utilities"
+}
