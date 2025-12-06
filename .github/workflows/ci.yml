@@ -16,8 +16,8 @@ jobs:
     steps:
     - name: Free up disk space
       run: |
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        docker image prune -af
+        sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android
+        docker system prune --all --force
         sudo apt-get clean
         sudo rm -rf /var/lib/apt/lists/*
         
@@ -27,6 +27,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip' # Enable caching for pip
         
     - name: Install system dependencies
       run: |
@@ -36,8 +37,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install flake8 pytest pytest-asyncio
+        # Install CPU-only torch first to save massive space
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+        # Install other requirements without cache and ignoring torch (since we have cpu version)
+        if [ -f requirements.txt ]; then pip install -r requirements.txt --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu; fi
+        pip install flake8 pytest pytest-asyncio --no-cache-dir
         
     - name: Lint with flake8
       run: |
