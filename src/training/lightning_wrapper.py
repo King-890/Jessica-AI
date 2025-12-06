@@ -1,4 +1,5 @@
 import pytorch_lightning as pl
+import torch
 from torch.utils.data import DataLoader
 from src.model.transformer import JessicaGPT
 from src.training.dataset import DatasetBuilder, TextDataset
