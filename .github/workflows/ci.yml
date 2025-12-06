@@ -48,14 +48,12 @@ jobs:
         # We install torch from the CPU index (using the env var implicitly or explicit flag to be safe)
         pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
         
-        # 2. Install Middleware (that might trigger heavy deps)
-        # By installing them now with the CPU index active, they should resolve to internal CPU libs (like torch)
-        pip install sentence-transformers chromadb --no-cache-dir
-        
-        # 3. Light Deps
+        # 2. Light Core Deps
+        # We EXCLUDE sentence-transformers, chromadb, faiss because they pull heavy GPU binaries.
+        # Codebase is now patched to handle their absence (Optional Imports).
         pip install fastapi uvicorn pydantic pydantic-settings python-dotenv pyyaml requests psutil beautifulsoup4 croniter --no-cache-dir
         
-        # 4. Dev Tools
+        # 3. Dev Tools
         pip install flake8 pytest pytest-asyncio --no-cache-dir
         
     - name: Lint with flake8

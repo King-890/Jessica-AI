@@ -7,8 +7,17 @@ import pickle
 from pathlib import Path
 from typing import List, Tuple, Optional
 import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
+
+# Optional Imports for CI/Lightweight mode
+try:
+    import faiss
+    from sentence_transformers import SentenceTransformer
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
+    print("Warning: RAG dependencies (faiss, sentence-transformers) not found. RAG features disabled.")
+
+from .document_processor import Document
 from .document_processor import Document
 
 class VectorStore:
@@ -23,16 +32,21 @@ class VectorStore:
             index_path: Path to save/load index
         """
         self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
-        self.dimension = self.model.get_sentence_embedding_dimension()
         self.index_path = index_path
-        
-        # Initialize FAISS index
-        self.index = faiss.IndexFlatL2(self.dimension)
         self.documents: List[Document] = []
         
-        print(f"Vector store initialized with model: {model_name}")
-        print(f"Embedding dimension: {self.dimension}")
+        if ML_AVAILABLE:
+            self.model = SentenceTransformer(model_name)
+            self.dimension = self.model.get_sentence_embedding_dimension()
+            # Initialize FAISS index
+            self.index = faiss.IndexFlatL2(self.dimension)
+            print(f"Vector store initialized with model: {model_name}")
+            print(f"Embedding dimension: {self.dimension}")
+        else:
+            self.model = None
+            self.index = None
+            self.dimension = 0
+            print("Vector store initialized in dummy mode (no ML libs).")
     
     def add_documents(self, documents: List[Document]):
         """Add documents to the vector store"""
