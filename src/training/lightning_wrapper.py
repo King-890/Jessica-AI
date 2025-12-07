@@ -18,7 +18,9 @@ class JessicaLightningModule(pl.LightningModule):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0) # 0 workers for Win compatibility
 
     def training_step(self, batch, batch_idx):
-        return self.model.training_step(batch, batch_idx)
+        loss = self.model.training_step(batch, batch_idx)
+        self.log('train_loss', loss, prog_bar=True)
+        return loss
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)

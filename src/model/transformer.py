@@ -109,7 +109,7 @@ class JessicaGPT(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits, loss = self(x, y)
-        self.log('train_loss', loss, prog_bar=True)
+        # self.log('train_loss', loss, prog_bar=True) # REMOVED: Wrapper handles logging
         return loss
 
     def configure_optimizers(self):
