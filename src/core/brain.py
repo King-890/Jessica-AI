@@ -62,6 +62,12 @@ class Brain:
         
         # --- Persona ---
         self.persona = "You are Jessica, a highly capable AI Assistant dedicated to helping the User build their Empire. You are professional, efficient, and proactive."
+        
+        # Heuristic Mode Flag: If True, we don't rely on the model for generation (it's random/untrained)
+        # In a real scenario, we'd check if weight file existed, but for now let's assume if it's small/random it's untrained
+        self.is_model_untrained = True # Default to True for safety in this phase
+        if model_path and Path(model_path).exists():
+             self.is_model_untrained = False # Assume trained if explicit weights loaded
 
     def set_mode(self, mode: str):
         print(f"Brain switched to {mode.upper()} mode.")
@@ -93,13 +99,21 @@ class Brain:
         if tool_output:
             context_accumulated.append(f"Tool Output:\n{tool_output}")
 
-        # 3. Feed to Model
+        # 3. Feed to Model or Heuristic Fallback
         full_prompt = "\n".join(context_accumulated + [f"User: {user_input}"])
         
         if update_callback:
-            update_callback("[Thinking via JessicaGPT...]\n")
+            update_callback("[Thinking...]\n")
             
-        generated_text = self._generate(full_prompt)
+        if self.is_model_untrained:
+            # Fallback: Don't let random model hallucinate. 
+            # If we have RAG context, show it. If not, give generic response.
+            if "Context from Knowledge Base" in full_prompt:
+                 generated_text = "I found this in my memory:\n\n" + rag_context
+            else:
+                 generated_text = "[System] I am currently untrained. Please add data to my knowledge base or Chat with me to build training data."
+        else:
+            generated_text = self._generate(full_prompt)
         
         if update_callback:
             update_callback(generated_text)

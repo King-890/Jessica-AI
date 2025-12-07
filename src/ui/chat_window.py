@@ -53,8 +53,14 @@ class ChatWindow(QWidget):
         chat_layout.addWidget(self.chat_history)
         
         input_layout = QHBoxLayout()
+        
+        # Status Label for Model
+        self.model_status = QLabel("⚠️ Untrained Mode")
+        self.model_status.setStyleSheet("color: #ffcc00; font-weight: bold; margin-right: 10px;")
+        input_layout.addWidget(self.model_status)
+        
         self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("Type a message to the untrained model...")
+        self.input_field.setPlaceholderText("Type a message...")
         self.input_field.setStyleSheet("""
             QLineEdit {
                 background-color: #2d2d2d;
@@ -176,9 +182,13 @@ class ChatWindow(QWidget):
     def append_message(self, sender, text, color="#d4d4d4", is_streaming=False):
         cursor = self.chat_history.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
+        self.chat_history.setTextCursor(cursor) # Set it first
         cursor.insertHtml(f'<p style="margin-top: 12px; margin-bottom: 4px;"><b style="color: {color};">{sender}:</b></p>')
         formatted_text = self.format_message(text)
         cursor.insertHtml(f'<div style="color: #d4d4d4; margin-left: 10px; margin-bottom: 8px;" id="streaming">{formatted_text}</div>')
+        
+        # transform cursor to end again to ensure view follows
+        cursor.movePosition(cursor.MoveOperation.End)
         self.chat_history.setTextCursor(cursor)
         self.chat_history.ensureCursorVisible()
 

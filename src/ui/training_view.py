@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                             QTextEdit, QLabel, QProgressBar, QSpinBox)
+                             QTextEdit, QLabel, QProgressBar, QSpinBox,
+                             QLineEdit, QComboBox, QGroupBox)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
 import sys
 import os
@@ -16,6 +17,26 @@ class Stream(QThread):
         
     def flush(self):
         pass
+
+# Worker for Ingesting Sources (Web/Git)
+class IngestionWorker(QThread):
+    finished = pyqtSignal(str) # Message
+    
+    def __init__(self, rag_manager, source_type, url):
+        super().__init__()
+        self.rag_manager = rag_manager
+        self.source_type = source_type
+        self.url = url
+        
+    def run(self):
+        try:
+            if self.source_type == "Web Page":
+                self.rag_manager.ingest_web_page(self.url)
+            elif self.source_type == "Git Repo":
+                self.rag_manager.ingest_git_repo(self.url)
+            self.finished.emit(f"Successfully processed: {self.url}")
+        except Exception as e:
+            self.finished.emit(f"Error processing {self.url}: {str(e)}")
 
 class TrainingWorker(QThread):
     finished = pyqtSignal()
@@ -79,7 +100,37 @@ class TrainingView(QWidget):
         controls_layout.addWidget(self.start_btn)
         controls_layout.addWidget(self.stop_btn)
         
+        
         layout.addLayout(controls_layout)
+        
+        # --- Knowledge Source Section ---
+        source_group = QGroupBox("Add Knowledge Source")
+        source_group.setStyleSheet("QGroupBox { border: 1px solid #3e3e3e; margin-top: 10px; padding-top: 10px; font-weight: bold; color: #d4d4d4; }")
+        source_layout = QHBoxLayout(source_group)
+        
+        self.source_type = QComboBox()
+        self.source_type.addItems(["Web Page", "Git Repo"])
+        self.source_type.setStyleSheet("background-color: #2d2d2d; color: white; padding: 5px;")
+        
+        self.source_input = QLineEdit()
+        self.source_input.setPlaceholderText("Enter URL (e.g. https://example.com or https://github.com/user/repo)")
+        self.source_input.setStyleSheet("background-color: #2d2d2d; color: white; padding: 5px; border: 1px solid #3e3e3e;")
+        
+        self.ingest_btn = QPushButton("Ingest Source")
+        self.ingest_btn.setStyleSheet("""
+            QPushButton {
+                 background-color: #2e7d32; color: white; border: none; padding: 5px 10px;
+            }
+            QPushButton:hover { background-color: #1b5e20; }
+        """)
+        self.ingest_btn.clicked.connect(self.ingest_source)
+        
+        source_layout.addWidget(self.source_type)
+        source_layout.addWidget(self.source_input)
+        source_layout.addWidget(self.ingest_btn)
+        
+        layout.addWidget(source_group)
+        # -------------------------------
         
         # Log Output
         self.log_output = QTextEdit()
@@ -156,6 +207,29 @@ class TrainingView(QWidget):
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.is_training = False
+
+    def ingest_source(self):
+        url = self.source_input.text().strip()
+        if not url:
+            self.log(">>> Error: Please enter a URL.")
+            return
+            
+        source_type = self.source_type.currentText()
+        self.log(f">>> Queuing Ingestion: [{source_type}] {url}")
+        
+        self.ingest_btn.setEnabled(False)
+        self.source_input.setEnabled(False)
+        
+        # Start worker
+        self.ingest_worker = IngestionWorker(self.brain.rag_manager, source_type, url)
+        self.ingest_worker.finished.connect(self.on_ingestion_finished)
+        self.ingest_worker.start()
+        
+    def on_ingestion_finished(self, message):
+        self.log(f">>> {message}")
+        self.ingest_btn.setEnabled(True)
+        self.source_input.setEnabled(True)
+        self.source_input.clear()
 
     def on_training_finished(self):
         self.log(">>> Training Completed!")
