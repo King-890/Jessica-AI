@@ -109,6 +109,7 @@ def main():
         max_epochs=args.epochs,
         accelerator=accelerator,
         devices=devices,
+        precision="16-mixed" if accelerator == "gpu" else 32,
         enable_checkpointing=True,
         default_root_dir="checkpoints"
     )
