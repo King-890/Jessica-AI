@@ -36,7 +36,8 @@ class VoiceManager:
                 print("🎤 Voice Manager Initialized.")
             except Exception as e:
                 print(f"Warning: Microphone init failed: {e}")
-                AUDIO_AVAILABLE = False
+                # Do not modify global AUDIO_AVAILABLE here to avoid F823
+                # Just leave self.recognizer as None, which is handled in checks
         else:
              print("🎤 Voice Manager Disabled (Missing Libs).")
 
