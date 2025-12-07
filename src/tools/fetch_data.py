@@ -64,6 +64,8 @@ def fetch_coding_data(output_file: str = "data_code.jsonl", max_samples: int = 5
                 f.write(json.dumps(entry) + "\n")
                 story_count += 1
         print(f"💾 Saved {story_count} stories to data_stories.jsonl")
+    except Exception as e:
+        print(f"❌ Failed to download stories: {e}")
 
     # --- 3. App & Game Development (CodeParrot Apps) ---
     print(f"⬇️  Downloading App/Game Dev Dataset (CodeParrot Apps)...")
