@@ -57,7 +57,14 @@ def main():
         builder.add_interaction("Hello", "Hi there, I am Jessica.")
         builder.add_interaction("Build empire", "Initializing empire building protocols.")
         
-    dataset = builder.build_dataset(brain.tokenizer)
+    # Use smaller block_size (32) to allow training on small dummy datasets (82 tokens)
+    # Default of 128 would cause negative length error if data < 128.
+    dataset = builder.build_dataset(brain.tokenizer, block_size=32)
+    
+    if len(dataset) <= 0:
+        print(f"   Error: Dataset too small ({len(dataset)} samples). Add more data.")
+        return
+
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
     
     # 3. Initialize Training Module
