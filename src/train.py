@@ -52,14 +52,23 @@ def main():
     # -----------------------------------------------------------------
 
     # Force some dummy data if empty for testing, or load from file
-    if len(builder.interactions) == 0:
+    dataset = None
+    if Path("data_code.jsonl").exists():
+        print("   📂 Found real training data: data_code.jsonl")
+        # Use block_size=64 for code to capture more context
+        dataset = builder.from_jsonl("data_code.jsonl", block_size=64)
+    elif len(builder.interactions) == 0:
         print("   Warning: No interaction history found. Utilizing dummy data for dry-run.")
         builder.add_interaction("Hello", "Hi there, I am Jessica.")
         builder.add_interaction("Build empire", "Initializing empire building protocols.")
+        dataset = builder.build_dataset(brain.tokenizer, block_size=32)
+    else:
+        dataset = builder.build_dataset(brain.tokenizer, block_size=32)
         
     # Use smaller block_size (32) to allow training on small dummy datasets (82 tokens)
     # Default of 128 would cause negative length error if data < 128.
-    dataset = builder.build_dataset(brain.tokenizer, block_size=32)
+    if dataset is None: # Should technically be covered above
+         dataset = builder.build_dataset(brain.tokenizer, block_size=32)
     
     if len(dataset) <= 0:
         print(f"   Error: Dataset too small ({len(dataset)} samples). Add more data.")
