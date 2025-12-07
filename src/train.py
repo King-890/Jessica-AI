@@ -29,9 +29,28 @@ def main():
     brain = Brain(config, mcp_host=None, rag_manager=None)
     
     # 2. Prepare Data
+    # 2. Prepare Data
     print("📊 Preparing Dataset...")
     # In cloud, we might check for a specific data folder
     builder = DatasetBuilder(brain.tokenizer)
+    
+    # --- SELF-HEALING: Patch DatasetBuilder if local file is stale ---
+    if not hasattr(builder, 'interactions'):
+        print("   ⚠️  Detected stale DatasetBuilder. Applying runtime patch...")
+        builder.interactions = []
+        builder.add_interaction = lambda u, a: builder.interactions.append((u, a))
+        
+        # Patch build_dataset if missing (likely is if interactions is missing)
+        if not hasattr(builder, 'build_dataset'):
+            from src.training.dataset import TextDataset
+            def patched_build(tokenizer, block_size=128):
+                data = []
+                for user, assistant in builder.interactions:
+                    data.append(user); data.append(assistant)
+                return TextDataset(data, tokenizer, block_size)
+            builder.build_dataset = patched_build
+    # -----------------------------------------------------------------
+
     # Force some dummy data if empty for testing, or load from file
     if len(builder.interactions) == 0:
         print("   Warning: No interaction history found. Utilizing dummy data for dry-run.")
