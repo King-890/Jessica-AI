@@ -26,6 +26,8 @@ def main():
     parser = argparse.ArgumentParser(description='Jessica AI Training Script')
     parser.add_argument('--epochs', type=int, default=5, help='Number of training epochs')
     parser.add_argument('--workers', type=int, default=4, help='Number of data loading workers')
+    parser.add_argument('--batch_size', type=int, default=2, help='Batch size for training')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
     args = parser.parse_args()
 
     print(f"⚡ Starting Jessica AI Cloud Training ⚡ (Epochs: {args.epochs}, Batch: {args.batch_size}, Workers: {args.workers})")
