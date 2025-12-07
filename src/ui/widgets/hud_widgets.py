@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QPushButton, QFrame, QLabel, QSlider, QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, QTimer, QSize, pyqtProperty, QRectF
+from PyQt6.QtCore import Qt, QTimer, QSize, pyqtProperty, QRectF, QPointF
 from PyQt6.QtGui import QColor, QPainter, QPen, QBrush, QRadialGradient
 
 class HUDFrame(QFrame):
