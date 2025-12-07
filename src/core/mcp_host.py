@@ -1,17 +1,28 @@
 import asyncio
 import os
 from typing import Dict, List, Any, Optional
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 from contextlib import AsyncExitStack
+
+try:
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP_AVAILABLE = False
+    ClientSession = Any
+    StdioServerParameters = Any
+    print("Warning: mcp library not found. MCP Host disabled.")
 
 class MCPHost:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.servers: Dict[str, ClientSession] = {}
+        self.servers: Dict[str, Any] = {}
         self.exit_stack = AsyncExitStack()
 
     async def start(self):
+        if not MCP_AVAILABLE:
+            return
+
         server_configs = self.config.get('mcp_servers', {})
         for name, server_config in server_configs.items():
             command = server_config.get('command')
@@ -42,6 +53,9 @@ class MCPHost:
 
     async def get_tools(self) -> List[Dict[str, Any]]:
         all_tools = []
+        if not MCP_AVAILABLE:
+            return all_tools
+
         for name, session in self.servers.items():
             try:
                 tools_result = await session.list_tools()
@@ -57,6 +71,9 @@ class MCPHost:
         return all_tools
 
     async def call_tool(self, server_name: str, tool_name: str, arguments: Dict[str, Any]) -> Any:
+        if not MCP_AVAILABLE:
+            raise RuntimeError("MCP not available")
+
         if server_name not in self.servers:
             raise ValueError(f"Server {server_name} not found")
         
