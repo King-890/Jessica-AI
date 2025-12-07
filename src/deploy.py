@@ -49,17 +49,33 @@ async def startup_event():
     # RAG could be enabled if vector store is populated, but optional for now
     brain = Brain(config, mcp_host=None, rag_manager=None)
     
+    # Debug: List context to help user find the file
+    print(f"📂 Current Directory: {os.getcwd()}")
+    print(f"📂 Files available: {[f for f in os.listdir('.') if f.endswith('.pt')]}")
+
     # Load Trained Weights if available
-    if Path(MODEL_PATH).exists():
-        print(f"📦 Loading trained model from {MODEL_PATH}...")
-        try:
-            state_dict = torch.load(MODEL_PATH, map_location=brain.device)
-            brain.local_model.load_state_dict(state_dict)
-            print("✅ Model loaded successfully.")
-        except Exception as e:
-            print(f"❌ Failed to load model: {e}")
-    else:
-        print("⚠️  No custom model found. Using initialized random weights.")
+    potential_models = [MODEL_PATH, "jessica_model.pt", "checkpoints/last.ckpt"]
+    model_loaded = False
+    
+    for path in potential_models:
+        if Path(path).exists():
+            print(f"📦 Loading trained model from {path}...")
+            try:
+                state_dict = torch.load(path, map_location=brain.device)
+                # Handle Lightning checkpoint format vs raw state dict
+                if 'state_dict' in state_dict:
+                    # Strip 'model.' prefix if using Lightning Checkpoints
+                    state_dict = {k.replace('model.', ''): v for k, v in state_dict['state_dict'].items()}
+                
+                brain.local_model.load_state_dict(state_dict)
+                print(f"✅ Model loaded successfully from {path}.")
+                model_loaded = True
+                break
+            except Exception as e:
+                print(f"❌ Failed to load model {path}: {e}")
+    
+    if not model_loaded:
+        print("⚠️  No custom model found (checked cloud/local/checkpoints). Using initialized random weights.")
 
 @app.get("/health")
 async def health_check():
@@ -89,4 +105,10 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=HOST, port=PORT)
+    try:
+        uvicorn.run(app, host=HOST, port=PORT)
+    except OSError as e:
+        if "Address already in use" in str(e) or "[Errno 98]" in str(e):
+             print(f"\n❌ ERROR: Port {PORT} is occupied!")
+             print(f"👉 Run this command to kill the blocker:  fuser -k {PORT}/tcp")
+        raise e
