@@ -28,6 +28,23 @@ class Brain:
         # Small model for responsiveness
         self.local_model = JessicaGPT(vocab_size=self.tokenizer.vocab_size, n_embd=128, n_head=4, n_layer=4)
         
+        # --- Load Trained Weights ---
+        llm_conf = self.config.get("llm", {})
+        model_path = llm_conf.get("model_path")
+        if model_path:
+            p = Path(model_path)
+            if p.exists():
+                print(f"   -> 💾 Loading Weights from {p}...")
+                try:
+                    # Map location ensures we can load GPU model on CPU if needed
+                    state_dict = torch.load(p, map_location='cpu' if not torch.cuda.is_available() else None)
+                    self.local_model.load_state_dict(state_dict)
+                    print("   -> Weights loaded successfully.")
+                except Exception as e:
+                    print(f"   -> ❌ Failed to load weights: {e}")
+            else:
+                print(f"   -> ⚠️ Model file not found at {p}. Using random weights.")
+        
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"   -> Moving to device: {self.device}")
         self.local_model.to(self.device)
