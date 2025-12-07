@@ -50,6 +50,8 @@ class VectorStore:
     
     def add_documents(self, documents: List[Document]):
         """Add documents to the vector store"""
+        if not ML_AVAILABLE:
+            return
         if not documents:
             return
         
@@ -88,6 +90,9 @@ class VectorStore:
         Returns:
             List of (document, similarity_score) tuples
         """
+        if not ML_AVAILABLE:
+            return []
+            
         if len(self.documents) == 0:
             return []
         
@@ -119,7 +124,8 @@ class VectorStore:
         
         # Save FAISS index
         index_file = save_path / "faiss.index"
-        faiss.write_index(self.index, str(index_file))
+        if ML_AVAILABLE:
+            faiss.write_index(self.index, str(index_file))
         
         # Save documents
         docs_file = save_path / "documents.pkl"
@@ -148,10 +154,11 @@ class VectorStore:
         
         # Load FAISS index
         index_file = load_path / "faiss.index"
-        if not index_file.exists():
-            raise FileNotFoundError(f"Index file not found: {index_file}")
         
-        self.index = faiss.read_index(str(index_file))
+        if ML_AVAILABLE:
+            if not index_file.exists():
+                raise FileNotFoundError(f"Index file not found: {index_file}")
+            self.index = faiss.read_index(str(index_file))
         
         # Load documents
         docs_file = load_path / "documents.pkl"
@@ -170,8 +177,9 @@ class VectorStore:
     
     def clear(self):
         """Clear all documents and reset index"""
-        self.index = faiss.IndexFlatL2(self.dimension)
         self.documents = []
+        if ML_AVAILABLE:
+            self.index = faiss.IndexFlatL2(self.dimension)
         print("Index cleared")
     
     def get_stats(self) -> dict:
