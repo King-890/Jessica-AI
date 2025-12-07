@@ -1,8 +1,16 @@
 import threading
 import time
-import speech_recognition as sr
 from typing import Optional, Callable
 from .tts import TTS
+
+# Optional Import for CI
+try:
+    import speech_recognition as sr
+    AUDIO_AVAILABLE = True
+except ImportError:
+    AUDIO_AVAILABLE = False
+    sr = None
+    print("Warning: SpeechRecognition not found. Voice features disabled.")
 
 class VoiceManager:
     """
@@ -11,17 +19,26 @@ class VoiceManager:
     """
     def __init__(self):
         self.tts = TTS()
-        self.recognizer = sr.Recognizer()
-        self.microphone = sr.Microphone()
-        self.is_listening = False
         self.callback: Optional[Callable[[str], None]] = None
         self.thread = None
         
-        # Audio tweaks
-        self.recognizer.dynamic_energy_threshold = True
-        self.recognizer.energy_threshold = 4000
-        
-        print("🎤 Voice Manager Initialized.")
+        self.recognizer = None
+        self.microphone = None
+        self.is_listening = False
+
+        if AUDIO_AVAILABLE:
+            try:
+                self.recognizer = sr.Recognizer()
+                self.microphone = sr.Microphone()
+                # Audio tweaks
+                self.recognizer.dynamic_energy_threshold = True
+                self.recognizer.energy_threshold = 4000
+                print("🎤 Voice Manager Initialized.")
+            except Exception as e:
+                print(f"Warning: Microphone init failed: {e}")
+                AUDIO_AVAILABLE = False
+        else:
+             print("🎤 Voice Manager Disabled (Missing Libs).")
 
     def speak(self, text: str):
         """Speak text using TTS"""
@@ -45,9 +62,14 @@ class VoiceManager:
             self.thread.join(timeout=1.0)
             
     def _listen_loop(self):
+        if not AUDIO_AVAILABLE or not self.microphone or not self.recognizer:
+            return
+
         with self.microphone as source:
             print("🎤 Adjusting for ambient noise...")
-            self.recognizer.adjust_for_ambient_noise(source, duration=1)
+            try:
+                self.recognizer.adjust_for_ambient_noise(source, duration=1)
+            except: pass
             print("🎤 Ready.")
             
             while self.is_listening:
