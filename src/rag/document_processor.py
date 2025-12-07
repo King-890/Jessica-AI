@@ -6,7 +6,13 @@ Extracts and chunks documents intelligently for indexing.
 import os
 from pathlib import Path
 from typing import List, Dict, Any
-import tiktoken
+
+try:
+    import tiktoken
+    TOKENIZER_AVAILABLE = True
+except ImportError:
+    TOKENIZER_AVAILABLE = False
+    print("Warning: tiktoken not found. Document chunking will be degraded.")
 
 class Document:
     """Represents a processed document chunk"""
@@ -44,7 +50,10 @@ class DocumentProcessor:
         """
         self.max_chunk_size = max_chunk_size
         self.overlap = overlap
-        self.tokenizer = tiktoken.get_encoding("cl100k_base")
+        if TOKENIZER_AVAILABLE:
+            self.tokenizer = tiktoken.get_encoding("cl100k_base")
+        else:
+            self.tokenizer = None
     
     def should_process_file(self, file_path: Path) -> bool:
         """Check if file should be processed"""
@@ -91,6 +100,34 @@ class DocumentProcessor:
         if not text.strip():
             return []
         
+        if not TOKENIZER_AVAILABLE:
+            # Simple Character/Word based fallback
+            # Crude approximation: 1 token ~= 4 chars
+            chunk_size_chars = self.max_chunk_size * 4
+            overlap_chars = self.overlap * 4
+            
+            chunks = []
+            start = 0
+            chunk_index = 0
+            
+            while start < len(text):
+                end = min(start + chunk_size_chars, len(text))
+                chunk_text = text[start:end]
+                
+                chunk_metadata = {
+                    **metadata,
+                    'chunk_index': chunk_index,
+                    'start_char': start,
+                    'end_char': end
+                }
+                chunks.append(Document(chunk_text, chunk_metadata))
+                start = end - overlap_chars
+                chunk_index += 1
+            
+            for chunk in chunks:
+                chunk.metadata['total_chunks'] = len(chunks)
+            return chunks
+
         # Tokenize the entire text
         tokens = self.tokenizer.encode(text)
         
