@@ -71,7 +71,7 @@ def fetch_coding_data(output_file: str = "data_code.jsonl", max_samples: int = 5
     print(f"⬇️  Downloading App/Game Dev Dataset (CodeParrot Apps)...")
     try:
         # subset of codeparrot/apps
-        ds_apps = load_dataset("codeparrot/apps", split="train", streaming=True)
+        ds_apps = load_dataset("codeparrot/apps", split="train", streaming=True, trust_remote_code=True)
         app_count = 0
         with open("data_apps.jsonl", 'w', encoding='utf-8') as f:
             for item in ds_apps:
