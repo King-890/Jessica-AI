@@ -36,6 +36,13 @@ class Brain:
         
         self.history = []
         
+        # --- Cloud Configuration ---
+        self.cloud_mode = self.config.get("cloud_mode", False)
+        self.cloud_url = self.config.get("cloud_url", "http://localhost:8080")
+        
+        if self.cloud_mode:
+            print(f"☁️ Cloud Mode ENABLED. Connected to: {self.cloud_url}")
+        
         # --- Persona ---
         self.persona = "You are Jessica, a highly capable AI Assistant dedicated to helping the User build their Empire. You are professional, efficient, and proactive."
 
@@ -149,7 +156,24 @@ class Brain:
         return None
 
     def _generate(self, text: str) -> str:
-        """Run generation on local model"""
+        """Run generation on local model OR Cloud API"""
+        if self.cloud_mode:
+            try:
+                import requests
+                print(f"☁️ Sending to Cloud Brain: {self.cloud_url}/chat")
+                response = requests.post(
+                    f"{self.cloud_url}/chat", 
+                    json={"message": text, "user_id": "client_app"},
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    return response.json().get("response", "[Empty Cloud Response]")
+                else:
+                    return f"[Cloud Error {response.status_code}]: {response.text}"
+            except Exception as e:
+                return f"[Cloud Connection Failed]: {e}"
+
+        # --- Local Fallback ---
         input_ids = self.tokenizer.encode(text)
         if len(input_ids) > 200:
             input_ids = input_ids[-200:]
