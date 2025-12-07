@@ -3,3 +3,4 @@ pytorch-lightning>=2.0.0
 PyYAML>=6.0
 tqdm>=4.65.0
 mcp>=0.1.0
+tiktoken>=0.5.0
