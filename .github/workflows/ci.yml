@@ -51,7 +51,7 @@ jobs:
         # 2. Light Core Deps
         # We EXCLUDE sentence-transformers, chromadb, faiss because they pull heavy GPU binaries.
         # Codebase is now patched to handle their absence (Optional Imports).
-        pip install fastapi uvicorn pydantic pydantic-settings python-dotenv pyyaml requests psutil beautifulsoup4 croniter httpx --no-cache-dir
+        pip install fastapi uvicorn pydantic pydantic-settings python-dotenv pyyaml requests psutil beautifulsoup4 croniter httpx python-multipart --no-cache-dir
         
         # 3. Dev Tools
         pip install flake8 pytest pytest-asyncio --no-cache-dir
