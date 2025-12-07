@@ -25,11 +25,10 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description='Jessica AI Training Script')
     parser.add_argument('--epochs', type=int, default=5, help='Number of training epochs')
-    parser.add_argument('--batch_size', type=int, default=2, help='Batch size for training')
-    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
+    parser.add_argument('--workers', type=int, default=4, help='Number of data loading workers')
     args = parser.parse_args()
 
-    print(f"⚡ Starting Jessica AI Cloud Training ⚡ (Epochs: {args.epochs}, Batch: {args.batch_size})")
+    print(f"⚡ Starting Jessica AI Cloud Training ⚡ (Epochs: {args.epochs}, Batch: {args.batch_size}, Workers: {args.workers})")
     
     # 1. Setup
     config = load_config()
@@ -93,10 +92,14 @@ def main():
         print(f"   Error: Dataset too small ({len(dataset)} samples). Add more data.")
         return
 
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, persistent_workers=(args.workers > 0))
     
     # 3. Initialize Training Module
     print("🧠 Initializing Lightning Module...")
+    
+    # CRITICAL: Force model into training mode (Brain initializes it in eval mode for inference)
+    brain.local_model.train() 
+    
     model = JessicaLightningModule(brain.local_model, learning_rate=args.lr)
     
     # 4. Trainer
