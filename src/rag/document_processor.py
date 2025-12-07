@@ -31,7 +31,7 @@ class DocumentProcessor:
         '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.c', '.h',
         '.cs', '.go', '.rs', '.rb', '.php', '.swift', '.kt',
         '.md', '.txt', '.yaml', '.yml', '.json', '.xml', '.html', '.css',
-        '.sh', '.bat', '.ps1', '.sql'
+        '.sh', '.bat', '.ps1', '.sql', '.jsonl'
     }
     
     # Files to ignore
@@ -77,6 +77,10 @@ class DocumentProcessor:
     
     def extract_text(self, file_path: Path) -> str:
         """Extract text content from file"""
+        # Special handling for JSONL (Chat History / Training Data)
+        if file_path.suffix == '.jsonl':
+            return self._extract_jsonl(file_path)
+
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -89,6 +93,31 @@ class DocumentProcessor:
                 return ""
         except Exception as e:
             print(f"Error reading {file_path}: {e}")
+            return ""
+
+    def _extract_jsonl(self, file_path: Path) -> str:
+        """Extract conversational text from JSONL"""
+        import json
+        text_content = []
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if not line.strip(): continue
+                    try:
+                        entry = json.loads(line)
+                        # Format based on fields we see in the file: timestamp, user, assistant, context
+                        user_msg = entry.get('user', '')
+                        assistant_msg = entry.get('assistant', '')
+                        if user_msg or assistant_msg:
+                            text_content.append(f"User: {user_msg}")
+                            text_content.append(f"Assistant: {assistant_msg}")
+                            text_content.append("-" * 20) # Separator
+                    except json.JSONDecodeError:
+                        continue
+            
+            return "\n".join(text_content)
+        except Exception as e:
+            print(f"Error processing JSONL {file_path}: {e}")
             return ""
     
     def chunk_text(self, text: str, metadata: Dict[str, Any]) -> List[Document]:

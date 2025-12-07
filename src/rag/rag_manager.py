@@ -40,6 +40,27 @@ class RAGManager:
             self._load_index()
         except:
             print("No existing index found, starting fresh")
+            
+        # Ensure training data is indexed (or at least check)
+        self.index_training_data()
+
+    def index_training_data(self):
+        """Index the training_data directory if it exists"""
+        training_dir = self.index_dir.parent / "training_data"
+        # If running from src/rag, we might need to adjust path logic or pass it in.
+        # Assuming index_dir is at project_root/.jessica/rag_index
+        # So project_root is index_dir.parent.parent
+        project_root = self.index_dir.parent.parent
+        training_dir = project_root / "training_data"
+        
+        if training_dir.exists() and training_dir.is_dir():
+            print(f"Checking training data at {training_dir}")
+            # We can force update or check if already indexed.
+            # For now, let's just index it as a project named "training_memory"
+            # It will process files and add them.
+            self.index_project(training_dir, project_name="training_memory")
+        else:
+            print(f"Training data directory not found at {training_dir}")
     
     def index_project(self, project_path: Path, project_name: Optional[str] = None):
         """
