@@ -67,35 +67,31 @@ def fetch_coding_data(output_file: str = "data_code.jsonl", max_samples: int = 5
     except Exception as e:
         print(f"❌ Failed to download stories: {e}")
 
-    # --- 3. App & Game Development (CodeParrot Apps) ---
-    print(f"⬇️  Downloading App/Game Dev Dataset (CodeParrot Apps)...")
+    # --- 3. Advanced Coding (Evol-Instruct - Great for Complex Tasks) ---
+    print(f"⬇️  Downloading Advanced Coding Dataset (Evol-Instruct)...")
     try:
-        # subset of codeparrot/apps
-        ds_apps = load_dataset("codeparrot/apps", split="train", streaming=True, trust_remote_code=True)
-        app_count = 0
-        with open("data_apps.jsonl", 'w', encoding='utf-8') as f:
-            for item in ds_apps:
-                if app_count >= 2000: 
+        # Using nickrosh/Evol-Instruct-Code-80k-v1 which is safe and high quality
+        ds_evol = load_dataset("nickrosh/Evol-Instruct-Code-80k-v1", split="train", streaming=True)
+        evol_count = 0
+        with open("data_evol.jsonl", 'w', encoding='utf-8') as f:
+            for item in ds_evol:
+                if evol_count >= 2000: 
                     break
-                # item keys: problem_id, question, solutions...
-                question = item.get('question', '')
-                try:
-                    solutions = json.loads(item.get('solutions', '[]'))
-                    solution = solutions[0] if len(solutions) > 0 else "No solution provided."
-                except:
-                    solution = item.get('solutions', '')
+                
+                # item keys: instruction, output
+                instruction = item.get('instruction', '')
+                output = item.get('output', '')
 
-                if len(solution) > 10: # Filter empty solutions
-                    entry = {
-                        "user": f"Write code for this problem:\n{question}", 
-                        "assistant": solution, 
-                        "source": "codeparrot_apps"
-                    }
-                    f.write(json.dumps(entry) + "\n")
-                    app_count += 1
-        print(f"💾 Saved {app_count} app dev samples to data_apps.jsonl")
+                entry = {
+                    "user": instruction, 
+                    "assistant": output, 
+                    "source": "evol_instruct_code"
+                }
+                f.write(json.dumps(entry) + "\n")
+                evol_count += 1
+        print(f"💾 Saved {evol_count} advanced coding samples to data_evol.jsonl")
     except Exception as e:
-        print(f"❌ Failed to download App Dev data: {e}")
+        print(f"❌ Failed to download Evol-Instruct data: {e}")
 
     print("👉 Now src/train.py will automatically find ALL these .jsonl files!")
 
