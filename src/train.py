@@ -52,11 +52,24 @@ def main():
     # -----------------------------------------------------------------
 
     # Force some dummy data if empty for testing, or load from file
-    dataset = None
-    if Path("data_code.jsonl").exists():
-        print("   📂 Found real training data: data_code.jsonl")
-        # Use block_size=64 for code to capture more context
-        dataset = builder.from_jsonl("data_code.jsonl", block_size=64)
+    print(f"   📂 scaning for data in: {os.getcwd()}")
+    jsonl_files = list(Path(".").glob("*.jsonl"))
+    
+    datasets = []
+    
+    if jsonl_files:
+        print(f"   🎉 Found {len(jsonl_files)} dataset files: {[f.name for f in jsonl_files]}")
+        for f in jsonl_files:
+            try:
+                ds = builder.from_jsonl(str(f), block_size=64)
+                if len(ds) > 0:
+                    datasets.append(ds)
+            except Exception as e:
+                print(f"   ❌ Failed to load {f}: {e}")
+
+    if datasets:
+        print(f"   ✅ Combined {len(datasets)} datasets for training.")
+        dataset = torch.utils.data.ConcatDataset(datasets)
     elif len(builder.interactions) == 0:
         print("   Warning: No interaction history found. Utilizing dummy data for dry-run.")
         builder.add_interaction("Hello", "Hi there, I am Jessica.")
@@ -65,9 +78,8 @@ def main():
     else:
         dataset = builder.build_dataset(brain.tokenizer, block_size=32)
         
-    # Use smaller block_size (32) to allow training on small dummy datasets (82 tokens)
-    # Default of 128 would cause negative length error if data < 128.
-    if dataset is None: # Should technically be covered above
+    if not datasets and (not dataset or len(dataset) <= 0):
+         # Final fallback
          dataset = builder.build_dataset(brain.tokenizer, block_size=32)
     
     if len(dataset) <= 0:
