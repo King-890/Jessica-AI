@@ -21,13 +21,18 @@ class Brain:
         
         # --- Initialize Local Backend (Custom) ---
         print("🧠 Initializing Local JessicaGPT (Custom, No External API)...")
+        print("   -> Initializing Tokenizer...")
         self.tokenizer = SimpleTokenizer()
+        
+        print(f"   -> Initializing Model (Vocab: {self.tokenizer.vocab_size})...")
         # Small model for responsiveness
         self.local_model = JessicaGPT(vocab_size=self.tokenizer.vocab_size, n_embd=128, n_head=4, n_layer=4)
         
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"   -> Moving to device: {self.device}")
         self.local_model.to(self.device)
         self.local_model.eval()
+        print("   -> Brain initialized.")
         
         self.history = []
         
