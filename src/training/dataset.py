@@ -34,7 +34,20 @@ class DatasetBuilder:
     """
     def __init__(self, tokenizer: SimpleTokenizer):
         self.tokenizer = tokenizer
+        self.interactions = []  # Store manual interactions
         
+    def add_interaction(self, user_text: str, assistant_text: str):
+        """Add a single interaction pair"""
+        self.interactions.append((user_text, assistant_text))
+
+    def build_dataset(self, tokenizer: SimpleTokenizer, block_size: int = 128) -> TextDataset:
+        """Build dataset from accumulated manual interactions"""
+        data = []
+        for user, assistant in self.interactions:
+            data.append(user)
+            data.append(assistant)
+        return TextDataset(data, tokenizer, block_size)
+
     def from_jsonl(self, file_path: str, block_size: int = 128) -> TextDataset:
         """Load from DataCollector JSONL files"""
         data = []
