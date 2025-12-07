@@ -19,11 +19,16 @@ class TextDataset(Dataset):
         print(f"Dataset loaded with {len(self.tokens)} tokens.")
 
     def __len__(self):
-        return len(self.tokens) - self.block_size
+        # Optimize: Use non-overlapping chunks (Stride = Block Size)
+        # This reduces dataset size by factor of block_size (e.g., 64x smaller) but covers same data.
+        return (len(self.tokens) - 1) // self.block_size
 
     def __getitem__(self, idx):
-        # chunk of length block_size + 1
-        chunk = self.tokens[idx : idx + self.block_size + 1]
+        # Get random chunk via stride
+        start_idx = idx * self.block_size
+        end_idx = start_idx + self.block_size + 1
+        
+        chunk = self.tokens[start_idx : end_idx]
         x = torch.tensor(chunk[:-1], dtype=torch.long)
         y = torch.tensor(chunk[1:], dtype=torch.long)
         return x, y
