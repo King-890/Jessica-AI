@@ -119,16 +119,28 @@ def main():
     print("Initializing Voice System...")
     voice_manager = VoiceManager()
     
-    # Connect Voice -> Brain -> TTS
-    def on_voice_command(text: str):
-        print(f"🎤 Voice Command received: {text}")
+    # --- Thread-Safe Voice Bridge ---
+    from PyQt6.QtCore import QObject, pyqtSignal
+    
+    class VoiceSignals(QObject):
+        command_received = pyqtSignal(str)
+        
+    voice_signals = VoiceSignals()
+    
+    def handle_command(text):
+        print(f"🎤 Voice Command (Main Thread): {text}")
         async def process_async():
-            # Process via Brain (Silent update callback for now)
             response = await brain.process_input(text, update_callback=lambda x: None)
             if response:
-                pass # voice_manager.speak(response) # Disabled to fix Threading Crash (Switching to QTextToSpeech later)
-        # Schedule in main loop (Thread-Safe from Voice Thread)
-        loop.call_soon_threadsafe(lambda: loop.create_task(process_async()))
+                pass # voice_manager.speak(response) 
+        loop.create_task(process_async())
+        
+    voice_signals.command_received.connect(handle_command)
+    
+    # Connect Voice -> Signal -> Main Thread
+    def on_voice_command(text: str):
+        # Emit signal from background thread (Safe)
+        voice_signals.command_received.emit(text)
         
     voice_manager.start_listening(on_voice_command)
     
@@ -137,13 +149,17 @@ def main():
     # The scheduler notifies via callback.
     probe_scheduler.add_failure_callback(repair_engine.handle_failure)
     
+    # Create Main Dashboard
+    print("Initializing Dashboard...")
+    dashboard = MainDashboard(config, brain, pipeline_manager, probe_scheduler, repair_engine)
+    
     # Create system tray app
-    tray = SystemTrayApp(app, config, brain, pipeline_manager, probe_scheduler, repair_engine)
+    tray = SystemTrayApp(app, dashboard)
     tray.show()
     
-    # Auto-show chat window on startup for better UX
-    print("\nOpening chat window...")
-    tray.show_chat()
+    # Auto-show dashboard on startup
+    print("\nOpening Dashboard...")
+    dashboard.show()
     
     # Background indexing disabled (RAG is off)
     

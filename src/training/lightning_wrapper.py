@@ -9,10 +9,12 @@ class JessicaLightningModule(pl.LightningModule):
     """
     Wrapper to handle the training loop configuration.
     """
-    def __init__(self, model: JessicaGPT, learning_rate: float = 1e-4):
+    def __init__(self, model: JessicaGPT, dataset=None, batch_size=2, learning_rate: float = 1e-4):
         super().__init__()
         self.model = model
         self.learning_rate = learning_rate
+        self.train_dataset = dataset
+        self.batch_size = batch_size
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0) # 0 workers for Win compatibility

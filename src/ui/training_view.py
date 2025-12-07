@@ -100,7 +100,7 @@ class TrainingView(QWidget):
 
     def start_training(self):
         from src.training.dataset import DatasetBuilder
-        from src.training.lightning_wrapper import TrainingModule
+        from src.training.lightning_wrapper import JessicaLightningModule
         import pytorch_lightning as pl
         
         self.log(">>> Initializing Training Pipeline...")
@@ -131,7 +131,7 @@ class TrainingView(QWidget):
              return
 
         # 2. Setup Lightning
-        wrapper = TrainingModule(self.brain.model, dataset, batch_size=2)
+        wrapper = JessicaLightningModule(self.brain.model, dataset=dataset, batch_size=2)
         
         # Trainer - use lightweight settings
         self.trainer = pl.Trainer(

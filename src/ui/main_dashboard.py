@@ -7,6 +7,7 @@ from PyQt6.QtGui import QIcon, QAction
 from src.ui.widgets.custom_widgets import SidebarButton
 from src.ui.chat_window import ChatWindow
 from src.ui.pipeline_dashboard import PipelineDashboard
+from src.ui.training_view import TrainingView
 
 class MainDashboard(QMainWindow):
     def __init__(self, config, brain, pipeline_manager, probe_scheduler, repair_engine):
@@ -64,9 +65,8 @@ class MainDashboard(QMainWindow):
         self.pipeline_view = PipelineDashboard(pipeline_manager, probe_scheduler, repair_engine)
         self.stack.addWidget(self.pipeline_view)
         
-        # View 3: Brain Status (Placeholder)
-        self.brain_view = QLabel("Brain Status View (Coming Soon)")
-        self.brain_view.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # View 3: Brain Status (Training Dashboard)
+        self.brain_view = TrainingView(brain)
         self.stack.addWidget(self.brain_view)
         
         main_layout.addWidget(self.sidebar)
