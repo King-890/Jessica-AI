@@ -17,9 +17,16 @@ class Mock:
 config = {}
 brain = Mock()
 pipeline_manager = Mock()
+class MockPipeline:
+    def __init__(self, name, enabled=True):
+        self.name = name
+        self.enabled = enabled
+        self.status = "success"
+        self.last_run = "14:00"
+
 pipeline_manager.get_all_pipelines = lambda: {
-    "Self-Test": {"status": "success", "last_run": "14:00"},
-    "Data-Ingestion": {"status": "running", "last_run": "Now"}
+    "Self-Test": MockPipeline("Self-Test"),
+    "Data-Ingestion": MockPipeline("Data-Ingestion")
 }
 probe_scheduler = Mock()
 probe_scheduler.get_status = lambda: {"running": True, "active_probes": 5}

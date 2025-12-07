@@ -66,6 +66,23 @@ class MainDashboard(QMainWindow):
         self.chat_view = ChatWidget()
         chat_layout.addWidget(self.chat_view)
         
+        # Move Input Field Here
+        input_container = QWidget()
+        input_layout = QHBoxLayout(input_container)
+        input_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText("How can I help you?")
+        self.input_field.returnPressed.connect(self.on_submit_text)
+        
+        mic_btn = HUDButton("🎤")
+        mic_btn.setFixedWidth(40)
+        
+        input_layout.addWidget(self.input_field)
+        input_layout.addWidget(mic_btn)
+        
+        chat_layout.addWidget(input_container)
+        
         grid.addWidget(chat_frame, 1, 0, 2, 1) # Row 1-2, Col 0
         
         # --- Middle Right: Settings ---
@@ -81,22 +98,6 @@ class MainDashboard(QMainWindow):
         settings_layout.addWidget(NeonSlider(Qt.Orientation.Horizontal))
         
         grid.addWidget(settings_frame, 1, 2, 1, 1) # Row 1, Col 2
-        
-        # --- Bottom Center: Input Field ---
-        input_frame = HUDFrame()
-        input_layout = QHBoxLayout(input_frame)
-        
-        self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("How can I help you?")
-        self.input_field.returnPressed.connect(self.on_submit_text)
-        
-        mic_btn = HUDButton("🎤")
-        mic_btn.setFixedWidth(50)
-        
-        input_layout.addWidget(self.input_field)
-        input_layout.addWidget(mic_btn)
-        
-        grid.addWidget(input_frame, 2, 1, 1, 1) # Row 2, Col 1
         
         # --- Bottom Right: Pipelines (Minimized) ---
         pipeline_frame = HUDFrame()
