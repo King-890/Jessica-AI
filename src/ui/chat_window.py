@@ -9,18 +9,18 @@ from src.ui.context_panel import ContextPanel
 from src.ui.training_view import TrainingView
 from src.ui.views import BrainView, FilesView, PipelinesView, SettingsView
 
-class ChatWindow(QMainWindow):
+class ChatWindow(QWidget):
     def __init__(self, config, brain):
         super().__init__()
         self.config = config
         self.brain = brain
-        self.setWindowTitle("Jessica AI - Engineering Deskboard")
-        self.resize(1200, 800) # Wider for 3 columns
+        # self.setWindowTitle("Jessica AI - Engineering Deskboard") # Removed window title logic
+        # self.resize(1200, 800) # Removed resize logic
         
         # Central widget & Main Layout
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QHBoxLayout(central_widget)
+        # central_widget = QWidget() # No longer needed
+        # self.setCentralWidget(central_widget) # No longer needed
+        main_layout = QHBoxLayout(self) # Layout directly on self
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         
@@ -107,11 +107,9 @@ class ChatWindow(QMainWindow):
         self.context_panel = ContextPanel()
         main_layout.addWidget(self.context_panel)
         
-        # Status Bar
-        self.status_label = QLabel("Ready")
-        self.status_label.setStyleSheet("color: #007acc; font-size: 9pt;")
-        self.statusBar().addWidget(self.status_label)
-        self.statusBar().setStyleSheet("background-color: #2d2d2d; color: #d4d4d4;")
+        # Status Bar (Replaced with internal label or removed for embedding)
+        # self.status_label = QLabel("Ready") # Can't add to statusBar
+        # self.statusBar().addWidget(self.status_label)
         
         self.current_assistant_message = None
 
@@ -144,7 +142,7 @@ class ChatWindow(QMainWindow):
         self.append_message("You", message, "#4ec9b0")
         self.input_field.clear()
         
-        self.status_label.setText("Jessica (Local) is thinking...")
+        # self.status_label.setText("Jessica (Local) is thinking...")
         
         self.current_assistant_message = ""
         self.append_message("Jessica", "", "#569cd6", is_streaming=True)
@@ -169,7 +167,7 @@ class ChatWindow(QMainWindow):
             error_msg = f"Error: {str(e)}"
             self.append_message("System", error_msg, "#f48771")
             
-        self.status_label.setText("Ready")
+        # self.status_label.setText("Ready")
         self.input_field.setEnabled(True)
         self.send_button.setEnabled(True)
         self.input_field.setFocus()

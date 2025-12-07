@@ -31,7 +31,7 @@ def test_ui():
     dashboard = MainDashboard(config, brain, pipeline_manager, probe_scheduler, repair_engine)
     
     # Setup styling manually just in case
-    with open("src/ui/styles/theme.qss", "r") as f:
+    with open("src/ui/styles/hud_theme.qss", "r") as f:
         app.setStyleSheet(f.read())
         
     print("Launching Dashboard with 'Deep Space' Theme...")

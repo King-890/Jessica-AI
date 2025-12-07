@@ -1,0 +1,80 @@
+/* 
+   Theme: Iron Man HUD (Jessica AI Phase 7.5)
+*/
+
+QMainWindow, QDialog {
+    background-color: #020b14; /* Deep Navy Background */
+    color: #00f0ff; /* Electric Cyan Text */
+}
+
+QWidget {
+    font-family: 'Segoe UI', 'Consolas', sans-serif;
+    font-size: 14px;
+    color: #a0c0ff;
+}
+
+QLabel {
+    color: #00f0ff;
+}
+
+/* --- HUD Frames --- */
+QFrame#HUDFrame {
+    background-color: rgba(2, 11, 20, 0.8);
+    border: 1px solid #00f0ff;
+    border-radius: 15px;
+}
+
+/* --- Buttons --- */
+QPushButton#HUDButton {
+    background-color: rgba(0, 240, 255, 0.1);
+    border: 1px solid #00f0ff;
+    border-radius: 8px;
+    color: #00f0ff;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 5px;
+}
+
+QPushButton#HUDButton:hover {
+    background-color: rgba(0, 240, 255, 0.3);
+    border: 2px solid #ffffff;
+    color: #ffffff;
+}
+
+QPushButton#HUDButton:pressed {
+    background-color: #00f0ff;
+    color: #020b14;
+}
+
+/* --- Inputs --- */
+QLineEdit, QTextEdit {
+    background-color: rgba(10, 20, 30, 0.8);
+    border: 1px solid #005f73;
+    border-radius: 5px;
+    color: #ffffff;
+    font-size: 16px;
+    padding: 8px;
+}
+
+QLineEdit:focus {
+    border: 1px solid #00f0ff;
+    background-color: rgba(10, 20, 30, 1.0);
+}
+
+/* --- Sliders --- */
+QSlider::groove:horizontal {
+    border: 1px solid #005f73;
+    height: 4px;
+    background: #020b14;
+    margin: 2px 0;
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+    background: #00f0ff;
+    border: 1px solid #00f0ff;
+    width: 12px;
+    height: 12px;
+    margin: -5px 0;
+    border-radius: 6px;
+}
