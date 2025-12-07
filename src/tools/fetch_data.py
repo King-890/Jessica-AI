@@ -64,17 +64,36 @@ def fetch_coding_data(output_file: str = "data_code.jsonl", max_samples: int = 5
                 f.write(json.dumps(entry) + "\n")
                 story_count += 1
         print(f"💾 Saved {story_count} stories to data_stories.jsonl")
-    except Exception as e:
-        print(f"❌ Failed to download stories: {e}")
 
-    # --- 3. General Instruction (Open Assistant) ---
-    print(f"⬇️  Downloading General Help Dataset (OpenAssistant)...")
+    # --- 3. App & Game Development (CodeParrot Apps) ---
+    print(f"⬇️  Downloading App/Game Dev Dataset (CodeParrot Apps)...")
     try:
-         # Simplified fetch for demo - usually these are chat trees, we'll skip for now to keep it simple
-         # or we can use a flattened version. Let's stick to Coding + Stories for speed.
-         pass
-    except:
-        pass
+        # subset of codeparrot/apps
+        ds_apps = load_dataset("codeparrot/apps", split="train", streaming=True)
+        app_count = 0
+        with open("data_apps.jsonl", 'w', encoding='utf-8') as f:
+            for item in ds_apps:
+                if app_count >= 2000: 
+                    break
+                # item keys: problem_id, question, solutions...
+                question = item.get('question', '')
+                try:
+                    solutions = json.loads(item.get('solutions', '[]'))
+                    solution = solutions[0] if len(solutions) > 0 else "No solution provided."
+                except:
+                    solution = item.get('solutions', '')
+
+                if len(solution) > 10: # Filter empty solutions
+                    entry = {
+                        "user": f"Write code for this problem:\n{question}", 
+                        "assistant": solution, 
+                        "source": "codeparrot_apps"
+                    }
+                    f.write(json.dumps(entry) + "\n")
+                    app_count += 1
+        print(f"💾 Saved {app_count} app dev samples to data_apps.jsonl")
+    except Exception as e:
+        print(f"❌ Failed to download App Dev data: {e}")
 
     print("👉 Now src/train.py will automatically find ALL these .jsonl files!")
 
