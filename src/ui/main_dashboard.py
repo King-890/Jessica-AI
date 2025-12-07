@@ -5,9 +5,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon
 from src.ui.widgets.hud_widgets import HUDFrame, HUDButton, AvatarWidget, NeonSlider
-from src.ui.chat_window import ChatWindow
+from src.ui.widgets.chat_widget import ChatWidget
 from src.ui.pipeline_dashboard import PipelineDashboard
 from src.ui.training_view import TrainingView
+from src.ui.confirmation_dialog import ConfirmationDialog
+import asyncio
 
 class MainDashboard(QMainWindow):
     def __init__(self, config, brain, pipeline_manager, probe_scheduler, repair_engine):
@@ -55,16 +57,13 @@ class MainDashboard(QMainWindow):
         media_layout.addWidget(QLabel("[Visual Feed Inactive]"))
         grid.addWidget(media_frame, 0, 2, 1, 1) # Row 0, Col 2
         
-        # --- Middle Left: Chat Window (Embedded HUD Style) ---
+        # --- Middle Left: Chat Widget (HUD Style) ---
         chat_frame = HUDFrame()
         chat_layout = QVBoxLayout(chat_frame)
         chat_header = QLabel("COMMUNICATIONS")
         chat_layout.addWidget(chat_header)
         
-        # Embed existing ChatWindow logic??
-        # ChatWindow interacts with brain... let's just use it but maybe strip its frame?
-        self.chat_view = ChatWindow(config, brain) 
-        # Hack: styling will apply recursively
+        self.chat_view = ChatWidget()
         chat_layout.addWidget(self.chat_view)
         
         grid.addWidget(chat_frame, 1, 0, 2, 1) # Row 1-2, Col 0
@@ -105,7 +104,6 @@ class MainDashboard(QMainWindow):
         pipeline_layout.addWidget(QLabel("ACTIVE PIPELINES"))
         self.pipelines_view = PipelineDashboard(pipeline_manager, probe_scheduler, repair_engine)
         self.pipelines_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        # We might need to make PipelineDashboard compact...
         pipeline_layout.addWidget(self.pipelines_view)
         grid.addWidget(pipeline_frame, 2, 2, 1, 1) # Row 2, Col 2
 
@@ -113,12 +111,36 @@ class MainDashboard(QMainWindow):
         grid.setColumnStretch(0, 3) # Left
         grid.setColumnStretch(1, 4) # Center (Avatar)
         grid.setColumnStretch(2, 3) # Right
+        
+        self.current_assistant_message = ""
 
     def on_submit_text(self):
-        text = self.input_field.text()
-        if text:
-            # We need to route this to the ChatWindow or Brain
-            # Since ChatWindow is embedded, we can pass it there?
-            # Or just use Brain directly.
-            self.chat_view.handle_submit(text) # Assuming ChatWindow has this or similar logic
-            self.input_field.clear()
+        text = self.input_field.text().strip()
+        if not text:
+            return
+            
+        # UI Updates
+        self.chat_view.append_message("You", text, "#00f0ff")
+        self.input_field.clear()
+        
+        # Async Processing (Fire and Forget task)
+        # In PyQt + Asyncio (qasync), we need to schedule this on the loop
+        asyncio.create_task(self.process_brain_response(text))
+
+    async def process_brain_response(self, text):
+        self.current_assistant_message = ""
+        self.chat_view.append_message("Jessica", "", "#ffffff")
+        
+        def update_callback(token):
+            self.current_assistant_message += token
+            self.chat_view.update_streaming_message(self.current_assistant_message)
+            
+        def confirmation_callback(op_type, details):
+            # Simple synchronous dialog execution
+            dialog = ConfirmationDialog(op_type, details, self)
+            return dialog.exec() == dialog.DialogCode.Accepted
+            
+        try:
+            await self.brain.process_input(text, update_callback, confirmation_callback)
+        except Exception as e:
+            self.chat_view.append_message("System", f"Error: {e}", "#ff0055")

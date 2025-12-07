@@ -22,7 +22,9 @@ pipeline_manager.get_all_pipelines = lambda: {
     "Data-Ingestion": {"status": "running", "last_run": "Now"}
 }
 probe_scheduler = Mock()
+probe_scheduler.get_status = lambda: {"running": True, "active_probes": 5}
 repair_engine = Mock()
+repair_engine.get_status = lambda: {"active_repairs": 0} # Anticipating repair engine requirement
 
 def test_ui():
     app = QApplication(sys.argv)
