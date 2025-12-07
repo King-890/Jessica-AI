@@ -60,18 +60,35 @@ class AvatarWidget(QWidget):
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(center, glow_radius, glow_radius)
         
-        # Draw Main Circle (Head)
-        gradient = QRadialGradient(center, radius)
-        gradient.setColorAt(0, QColor("#00f0ff"))
-        gradient.setColorAt(1, QColor("#005f73"))
+        # Draw Main Head Shape (Oval)
+        head_gradient = QRadialGradient(center, radius)
+        head_gradient.setColorAt(0, QColor("#00f0ff"))  # Bright center
+        head_gradient.setColorAt(1, QColor("#005f73"))  # Darker edge
         
-        painter.setBrush(QBrush(gradient))
+        painter.setBrush(QBrush(head_gradient))
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(center, radius, radius)
+        # Draw slightly elongated circle for head
+        painter.drawEllipse(center, radius * 0.85, radius)
         
-        # Draw Stylized "Head" Shape (Placeholder for simple visualization)
-        painter.setBrush(QColor("#020b14"))
-        painter.drawEllipse(center, radius * 0.4, radius * 0.5)
+        # Draw "Eyes" (Simple glowing slits)
+        eye_y = center.y() - (radius * 0.1)
+        eye_w = radius * 0.2
+        eye_h = radius * 0.08
+        spacing = radius * 0.3
+        
+        painter.setBrush(QBrush(QColor("#ffffff"))) # Bright white eyes
+        
+        # Left Eye
+        painter.drawEllipse(QPointF(center.x() - spacing, eye_y), eye_w, eye_h)
+        # Right Eye
+        painter.drawEllipse(QPointF(center.x() + spacing, eye_y), eye_w, eye_h)
+        
+        # Scanline Effect (Tech look)
+        painter.setPen(QPen(QColor(255, 255, 255, 30), 1))
+        for i in range(0, int(radius * 2), 4):
+            y = center.y() - radius + i
+            if (y > center.y() - radius) and (y < center.y() + radius):
+                 painter.drawLine(int(center.x() - radius), int(y), int(center.x() + radius), int(y))
 
 class NeonSlider(QSlider):
     """Styled Slider"""

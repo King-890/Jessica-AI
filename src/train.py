@@ -20,15 +20,22 @@ def load_config():
             return yaml.safe_load(f)
     return {}
 
+import argparse
+
 def main():
-    print("⚡ Starting Jessica AI Cloud Training ⚡")
+    parser = argparse.ArgumentParser(description='Jessica AI Training Script')
+    parser.add_argument('--epochs', type=int, default=5, help='Number of training epochs')
+    parser.add_argument('--batch_size', type=int, default=2, help='Batch size for training')
+    parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate')
+    args = parser.parse_args()
+
+    print(f"⚡ Starting Jessica AI Cloud Training ⚡ (Epochs: {args.epochs}, Batch: {args.batch_size})")
     
     # 1. Setup
     config = load_config()
     # Minimal Mock for Brain deps (we only need the model)
     brain = Brain(config, mcp_host=None, rag_manager=None)
     
-    # 2. Prepare Data
     # 2. Prepare Data
     print("📊 Preparing Dataset...")
     # In cloud, we might check for a specific data folder
@@ -86,11 +93,11 @@ def main():
         print(f"   Error: Dataset too small ({len(dataset)} samples). Add more data.")
         return
 
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     
     # 3. Initialize Training Module
     print("🧠 Initializing Lightning Module...")
-    model = JessicaLightningModule(brain.local_model, learning_rate=1e-4)
+    model = JessicaLightningModule(brain.local_model, learning_rate=args.lr)
     
     # 4. Trainer
     # Detect GPU
@@ -99,7 +106,7 @@ def main():
     print(f"⚙️  Accelerator: {accelerator}")
     
     trainer = pl.Trainer(
-        max_epochs=5,
+        max_epochs=args.epochs,
         accelerator=accelerator,
         devices=devices,
         enable_checkpointing=True,
