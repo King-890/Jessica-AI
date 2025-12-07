@@ -1,0 +1,127 @@
+/* 
+   Theme: Deep Space (Jessica AI Phase 7)
+   Colors:
+   - Background: #0f111a (Deep Void)
+   - Surface: #1a1d2d (Dark Slate)
+   - Primary: #00d4ff (Neon Cyan - Intelligence)
+   - Secondary: #7928ca (Neon Purple - Creativity)
+   - Text: #e0e6ed (Starlight)
+   - Success: #00ff9d
+   - Danger: #ff0055
+*/
+
+QMainWindow, QDialog {
+    background-color: #0f111a;
+    color: #e0e6ed;
+}
+
+QWidget {
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    font-size: 14px;
+    color: #e0e6ed;
+}
+
+/* --- Buttons --- */
+QPushButton {
+    background-color: #1a1d2d;
+    border: 1px solid #2d3342;
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: #00d4ff;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #2d3342;
+    border-color: #00d4ff;
+    color: #ffffff;
+}
+
+QPushButton:pressed {
+    background-color: #00d4ff;
+    color: #0f111a;
+}
+
+QPushButton#PrimaryButton {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00d4ff, stop:1 #00aaff);
+    color: #0f111a;
+    border: none;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+QPushButton#PrimaryButton:hover {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #33ddff, stop:1 #33bbff);
+}
+
+QPushButton#DestructiveButton {
+    color: #ff0055;
+    border-color: #551122;
+}
+
+QPushButton#DestructiveButton:hover {
+    background-color: #ff0055;
+    color: white;
+}
+
+/* --- Inputs --- */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background-color: #13151f;
+    border: 1px solid #2d3342;
+    border-radius: 4px;
+    padding: 6px;
+    color: #ffffff;
+    selection-background-color: #00d4ff;
+    selection-color: #0f111a;
+}
+
+QLineEdit:focus, QTextEdit:focus {
+    border: 1px solid #00d4ff;
+    background-color: #1a1d2d;
+}
+
+/* --- Scrollbars --- */
+QScrollBar:vertical {
+    border: none;
+    background: #0f111a;
+    width: 8px;
+    margin: 0px 0px 0px 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #2d3342;
+    min-height: 20px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #00d4ff;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* --- Sidebar --- */
+QWidget#Sidebar {
+    background-color: #0a0b10;
+    border-right: 1px solid #2d3342;
+}
+
+QLabel#LogoLabel {
+    color: #00d4ff;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 10px;
+}
+
+/* --- Cards --- */
+QFrame#Card {
+    background-color: #1a1d2d;
+    border-radius: 10px;
+    border: 1px solid #262a3b;
+}
+
+QFrame#Card:hover {
+    border: 1px solid #00d4ff;
+}

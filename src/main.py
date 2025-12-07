@@ -7,6 +7,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QApplication
 from qasync import QEventLoop
 from src.ui.tray_app import SystemTrayApp
+from src.ui.main_dashboard import MainDashboard
 from src.core.mcp_host import MCPHost
 from src.core.brain import Brain
 from src.rag.rag_manager import RAGManager
@@ -125,9 +126,9 @@ def main():
             # Process via Brain (Silent update callback for now)
             response = await brain.process_input(text, update_callback=lambda x: None)
             if response:
-                voice_manager.speak(response)
-        # Schedule in main loop
-        loop.create_task(process_async())
+                pass # voice_manager.speak(response) # Disabled to fix Threading Crash (Switching to QTextToSpeech later)
+        # Schedule in main loop (Thread-Safe from Voice Thread)
+        loop.call_soon_threadsafe(lambda: loop.create_task(process_async()))
         
     voice_manager.start_listening(on_voice_command)
     
