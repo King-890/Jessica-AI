@@ -7,8 +7,6 @@ echo      STARTING JESSICA AI ENGINEERING CONSOLE
 echo ===================================================
 echo.
 
-cd /d "%~dp0.."
-
 echo [INFO] Setting PYTHONPATH...
 set PYTHONPATH=%CD%
 

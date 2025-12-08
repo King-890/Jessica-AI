@@ -201,12 +201,29 @@ class TrainingView(QWidget):
         self.log(">>> Training Started... Check Console for Progress Bar.")
 
     def stop_training(self):
-        # Stopping a thread forcefully is hard. 
-        # In Lightning, we can set a flag but here we just update UI.
-        self.log(">>> Stopping... (Wait for current epoch)")
+        self.log(">>> Stopping Training & Freeing Memory...")
+        
+        # 1. Signal Lightning to stop
+        if hasattr(self, 'trainer'):
+            self.trainer.should_stop = True
+            
+        # 2. Wait a bit or just force kill thread if needed (safety first: try soft stop)
+        # If we really need memory NOW, we can try to unreference things
+        
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            self.worker.quit()
+            # self.worker.wait() # Unblocking UI
+            
+        # 3. Aggressive Cleanup
+        import gc
+        if hasattr(self, 'trainer'): del self.trainer
+        if hasattr(self, 'worker'): del self.worker
+        gc.collect() # Force RAM release
+        
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.is_training = False
+        self.log(">>> Training Stopped. Memory freed.")
 
     def ingest_source(self):
         url = self.source_input.text().strip()

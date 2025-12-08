@@ -149,9 +149,6 @@ class Brain:
                  
                  if update_callback: update_callback(f"[Executing: {cmd}]...")
                  try:
-                     # For MVP Demo, we simulate the MCP call or use a direct import if needed
-                     # Just returning success for now as we verified MCP structure in Phase 2
-                     # But let's actually run it if we can
                      from src.api.routes.shell import SafetyGuard
                      import subprocess
                      SafetyGuard.check(cmd)
@@ -159,6 +156,92 @@ class Brain:
                      return f"Shell Result: {res.stdout}"
                  except Exception as e:
                      return f"Shell Error: {e}"
+
+        # D. List Files
+        if "list files" in user_lower or "ls" == user_lower or "ls " in user_lower:
+            import os
+            target_dir = "."
+            # extract path if provided e.g. "ls src"
+            parts = user_input.split()
+            if len(parts) > 1 and (parts[0].lower() == "ls" or parts[0].lower() == "list"):
+                 target_dir = parts[-1]
+            
+            if update_callback: update_callback(f"[Listing directory: {target_dir}]...")
+            try:
+                files = os.listdir(target_dir)
+                return f"Files in {target_dir}:\n" + "\n".join(files[:50]) + ("\n... (truncated)" if len(files) > 50 else "")
+            except Exception as e:
+                return f"List Error: {e}"
+
+        # E. Read File (Improved)
+        if "read file" in user_lower or "cat " in user_lower:
+             path = None
+             import re
+             # match "read file <path>" or "cat <path>"
+             match = re.search(r"(read file|cat)\s+(.+)", user_input, re.IGNORECASE)
+             if match:
+                 path = match.group(2).strip()
+                 
+                 if update_callback: update_callback(f"[Reading file: {path}]...")
+                 try:
+                     if os.path.exists(path) and os.path.isfile(path):
+                         with open(path, 'r', encoding='utf-8') as f:
+                             content = f.read(2000) # Limit to 2k chars for chat visual
+                             if len(f.read(1)) > 0: content += "\n... (truncated)"
+                         return f"File Content ({path}):\n```\n{content}\n```"
+                     else:
+                         return f"File not found: {path}"
+                 except Exception as e:
+                     return f"Read Error: {e}"
+
+        # F. Search Code
+        if "search code" in user_lower or "grep" in user_lower:
+            import re
+            match = re.search(r"(search code|grep)\s+(.+)", user_input, re.IGNORECASE)
+            if match:
+                query = match.group(2).strip()
+                if update_callback: update_callback(f"[Searching codebase for: {query}]...")
+                try:
+                    # Simple grep using rg if available, or python walk
+                    # Let's use python walk for "pure local" reliability without rg dependency
+                    matches = []
+                    for root, dirs, files in os.walk("."):
+                        if ".git" in dirs: dirs.remove(".git")
+                        if "__pycache__" in dirs: dirs.remove("__pycache__")
+                        for file in files:
+                            if file.endswith(('.py', '.md', '.txt', '.yaml', '.json')):
+                                __path = os.path.join(root, file)
+                                try:
+                                    with open(__path, 'r', encoding='utf-8', errors='ignore') as f:
+                                        for i, line in enumerate(f):
+                                            if query in line:
+                                                matches.append(f"{__path}:{i+1}: {line.strip()[:100]}")
+                                                if len(matches) > 10: break
+                                except: pass
+                        if len(matches) > 10: break
+                    
+                    if matches:
+                        return f"Search Results for '{query}':\n" + "\n".join(matches)
+                    else:
+                        return f"No matches found for '{query}'"
+                except Exception as e:
+                    return f"Search Error: {e}"
+
+        # C. Read URL (Web Ingestion)
+        if "read url" in user_lower or "ingest url" in user_lower:
+            import re
+            url_match = re.search(r"(read|ingest) url\s+(http[s]?://\S+)", user_input, re.IGNORECASE)
+            if url_match:
+                url = url_match.group(2).strip()
+                if self.rag_manager:
+                    if update_callback: update_callback(f"[Reading URL: {url}]...")
+                    try:
+                        self.rag_manager.ingest_web_page(url)
+                        return f"Successfully read and memorized: {url}"
+                    except Exception as e:
+                        return f"Failed to read URL: {e}"
+                else:
+                    return "RAG Manager not active."
 
         # B. File Writing
         if "create file" in user_lower or "write file" in user_lower:

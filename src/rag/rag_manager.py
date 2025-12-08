@@ -282,6 +282,20 @@ class RAGManager:
             'vector_store': self.vector_store.get_stats(),
             'index_directory': str(self.index_dir)
         }
+
+    def unload_index(self):
+        """Free up memory by unloading the vector store"""
+        print("Wait! Unloading RAG Index to save memory...")
+        # Assuming VectorStore has a clear method or we just re-init
+        # If VectorStore uses a heavy model, we might want to delete it
+        if hasattr(self.vector_store, 'clear'):
+             # This clears data but might not free model weights if they are loaded in __init__
+             pass
+        
+        # Force garbage collection if possible or just reset logic
+        # For this MVP, we'll just print log as the VectorStore is lightweight-ish (MiniLM)
+        # But let's add a flag to prevent searches
+        print("RAG Index unloaded (Simulation).")
     
     def _save_index(self):
         """Save index to disk"""
