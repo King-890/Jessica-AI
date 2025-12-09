@@ -8,7 +8,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DB = os.path.join(BASE_DIR, 'data', 'jessica.db')
 
 
-from ...cloud.supabase_client import get_client
+from ..cloud.supabase_client import get_client
 
 # We now use Supabase for Auth (or a 'tokens' table in Supabase if using API keys)
 # For simplicity in this migration, we will check a 'tokens' table in Supabase 
