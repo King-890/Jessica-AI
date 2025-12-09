@@ -99,7 +99,7 @@ def jessica_core(prompt: str) -> str:
     if "build unity map" in text:
         return "Opening Unity Hub and preparing the map generator pipeline..."
     # 3) Skill routing: attempt each loaded skill until one handles
-    for name, mod in _skills.items():
+    for mod in _skills:
         try:
             handle = getattr(mod, "handle", None)
             if callable(handle):
@@ -127,5 +127,23 @@ def jessica_core(prompt: str) -> str:
                     continue
     except Exception:
         pass
+    except Exception:
+        pass
+
+    # 5) RAG / Memory Lookup (Supabase Cloud Brain)
+    try:
+        from src.rag.vector_store import VectorStore
+        # Singleton-ish usage or init per request (VectorStore is lightweight-ish)
+        # For performance, maybe cache this, but for now init is fine (checks env)
+        vs = VectorStore() 
+        results = vs.search(text, top_k=2)
+        if results:
+            context_str = "\n".join([f"- {doc.content}" for doc, score in results if score > 0.3])
+            if context_str:
+                return f"Based on my memory/cloud knowledge:\n{context_str}\n\n(I can verify this info is from Supabase)"
+    except Exception as e:
+        print(f"RAG Error: {e}")
+        pass
+
     # Fallback
-    return "Jessica is thinking... this is your local core response."
+    return "Jessica is thinking... (No specific knowledge found in Supabase/Local)"

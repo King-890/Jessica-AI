@@ -49,12 +49,15 @@ def _ensure_table(conn: sqlite3.Connection):
     conn.commit()
 
 
+from .cloud import supabase_client
+
 @router.post("/store")
 async def store_memory(payload: dict, _=Depends(require_role("user"))):
-    """Persist a prompt-response pair into AI memory."""
+    """Persist a prompt-response pair into AI memory (Local + Cloud)."""
     prompt = (payload.get("prompt") or "").strip()
     response = (payload.get("response") or "").strip()
     conn = sqlite3.connect(DB_PATH.as_posix())
+    local_id = 0
     try:
         _ensure_table(conn)
         cur = conn.cursor()
@@ -62,9 +65,20 @@ async def store_memory(payload: dict, _=Depends(require_role("user"))):
             "INSERT INTO interactions (prompt, response) VALUES (?, ?)", (prompt, response)
         )
         conn.commit()
-        return {"id": cur.lastrowid}
+        local_id = cur.lastrowid
     finally:
         conn.close()
+
+    # Sync to Supabase
+    # We fire and forget, or log error. For now, simple sync.
+    supabase_client.push_memory({
+        "prompt": prompt,
+        "response": response,
+        "local_id": local_id,
+        # 'timestamp' is auto-handled or we can pass it if schema matches
+    })
+    
+    return {"id": local_id}
 
 
 @router.post("/query")

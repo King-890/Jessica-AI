@@ -26,6 +26,16 @@ class DataCollector:
         with open(self.current_session_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps(entry) + "\n")
             
+        # Sync to Supabase Storage (Datasets bucket)
+        # We upload the whole file each time for simplicity in this "thin client" MVP
+        # Ideally this would be batched or done at session end.
+        try:
+            from src.backend.cloud.supabase_client import upload_file
+            rel_path = f"training_data/{self.current_session_file.name}"
+            upload_file("datasets", rel_path, str(self.current_session_file))
+        except Exception as e:
+            print(f"Failed to sync training data: {e}")
+            
     def get_stats(self) -> Dict[str, int]:
         """Return stats about collected data"""
         count = 0

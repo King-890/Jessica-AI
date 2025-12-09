@@ -92,3 +92,32 @@ def fetch_updates_metadata() -> Dict[str, Any]:
         return {"status": "ok", "latest": items[0] if items else None}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+def upload_file(bucket: str, path: str, file_path: str) -> bool:
+    """Generic upload file to Supabase Storage."""
+    cli = get_client()
+    if not cli: return False
+    try:
+        if not os.path.exists(file_path): return False
+        with open(file_path, "rb") as f:
+            cli.storage.from_(bucket).upload(path, f.read(), {"upsert": "true"})
+        return True
+        return True
+    except Exception as e:
+        print(f"DEBUG Upload Error: {e}")
+        return False
+
+
+def download_file(bucket: str, path: str, dest_path: str) -> bool:
+    """Generic download file from Supabase Storage."""
+    cli = get_client()
+    if not cli: return False
+    try:
+        data = cli.storage.from_(bucket).download(path)
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        with open(dest_path, "wb") as f:
+            f.write(data)
+        return True
+    except Exception:
+        return False
