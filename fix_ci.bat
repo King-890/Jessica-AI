@@ -1,4 +1,11 @@
+@echo off
+echo Adding .github/workflows/ci.yml to staging...
+git add .github/workflows/ci.yml
 
-git add src/tools/test_ui_theme.py
-git commit -m "fix: Skip UI tests if PyQt6 is missing (CI fix)"
+echo Committing changes...
+git commit -m "chore: fix CI by installing PyQt6"
+
+echo Pushing changes...
 git push
+
+echo Done.
