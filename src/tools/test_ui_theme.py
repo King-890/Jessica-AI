@@ -8,6 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 try:
     from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtCore import QTimer
     from src.ui.main_dashboard import MainDashboard
 except ImportError:
     print("PyQt6 not available. Skipping UI test.")
@@ -52,6 +53,9 @@ def test_ui():
         
     print("Launching Dashboard with 'Deep Space' Theme...")
     dashboard.show()
+    
+    # Auto-close after 2 seconds to prevent CI hang
+    QTimer.singleShot(2000, app.quit)
     
     sys.exit(app.exec())
 
