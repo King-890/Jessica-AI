@@ -1,0 +1,39 @@
+name: "Jessica AI Cloud Learning"
+
+on:
+  schedule:
+    # Run every 15 minutes roughly 24/7
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  cloud-training:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install Dependencies
+      run: |
+        pip install requests beautifulsoup4 duckduckgo-search supabase sentence-transformers numpy
+        # Note: 'faiss-cpu' is needed if not using supabase exclusively, but our code handles missing deps gracefully
+        # or we can install from requirements if specific cloud requirements exist
+        if [ -f requirements_cloud.txt ]; then pip install -r requirements_cloud.txt; fi
+        
+    - name: Run Learner
+      env:
+        # Secrets must be configured in GitHub Repo Settings -> Secrets
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }} # Optional if Anon has permissions
+        GOOGLE_CSE_API_KEY: ${{ secrets.GOOGLE_CSE_API_KEY }}
+        GOOGLE_CSE_CX: ${{ secrets.GOOGLE_CSE_CX }}
+        CI: "true"
+      run: |
+        python src/backend/continuous_learning.py

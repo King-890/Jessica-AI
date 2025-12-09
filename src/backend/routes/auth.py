@@ -8,61 +8,52 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 DB = os.path.join(BASE_DIR, 'data', 'jessica.db')
 
 
-def _ensure_table():
-    conn = sqlite3.connect(DB)
-    try:
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS tokens (
-                token TEXT PRIMARY KEY,
-                created_at INTEGER,
-                role TEXT DEFAULT 'user'
-            )
-            """
-        )
-        conn.commit()
-        # Migration: ensure role column exists
-        cur = conn.execute("PRAGMA table_info(tokens)")
-        cols = {row[1] for row in cur.fetchall()}
-        if "role" not in cols:
-            conn.execute("ALTER TABLE tokens ADD COLUMN role TEXT DEFAULT 'user'")
-            conn.commit()
-    finally:
-        conn.close()
+from ...cloud.supabase_client import get_client
 
+# We now use Supabase for Auth (or a 'tokens' table in Supabase if using API keys)
+# For simplicity in this migration, we will check a 'tokens' table in Supabase 
+# mirroring the local logic, OR we can rely on Supabase Auth JWTs. 
+# Given the existing simple token structure, let's use a 'tokens' table in Supabase.
+
+def _get_supa():
+    return get_client()
 
 def validate_token(token: str) -> bool:
-    _ensure_table()
-    conn = sqlite3.connect(DB)
+    cli = _get_supa()
+    if not cli: return False # Fail safe
     try:
-        cur = conn.execute("SELECT 1 FROM tokens WHERE token=?", (token,))
-        ok = cur.fetchone() is not None
-        return ok
-    finally:
-        conn.close()
-
+        # Check 'tokens' table in Supabase
+        resp = cli.table("tokens").select("token").eq("token", token).execute()
+        return len(resp.data) > 0
+    except Exception:
+        return False
 
 def get_token_role(token: str) -> str | None:
-    _ensure_table()
-    conn = sqlite3.connect(DB)
+    cli = _get_supa()
+    if not cli: return None
     try:
-        cur = conn.execute("SELECT role FROM tokens WHERE token=?", (token,))
-        row = cur.fetchone()
-        return row[0] if row else None
-    finally:
-        conn.close()
-
+        resp = cli.table("tokens").select("role").eq("token", token).execute()
+        if resp.data:
+            return resp.data[0].get("role")
+    except Exception:
+        pass
+    return None
 
 def make_token(role: str = "user") -> str:
-    _ensure_table()
+    cli = _get_supa()
+    if not cli: raise RuntimeError("No Cloud Connection")
+    
     t = secrets.token_hex(32)
-    conn = sqlite3.connect(DB)
     try:
-        conn.execute("INSERT INTO tokens(token, created_at, role) VALUES (?,?,?)", (t, int(time.time()), role))
-        conn.commit()
+        cli.table("tokens").insert({
+            "token": t,
+            "role": role,
+            # 'created_at' is auto
+        }).execute()
         return t
-    finally:
-        conn.close()
+    except Exception as e:
+        print(f"Auth Error: {e}")
+        return ""
 
 
 def require_role(role: str):
