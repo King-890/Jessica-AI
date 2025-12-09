@@ -1,5 +1,8 @@
 import sys
 import os
+# Ensure Qt runs offscreen in CI environments
+if os.environ.get("CI"):
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
