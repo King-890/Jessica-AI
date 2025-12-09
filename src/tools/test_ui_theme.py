@@ -54,10 +54,11 @@ def test_ui():
     print("Launching Dashboard with 'Deep Space' Theme...")
     dashboard.show()
     
+    
     # Auto-close after 2 seconds to prevent CI hang
     QTimer.singleShot(2000, app.quit)
     
-    sys.exit(app.exec())
+    return app.exec()
 
 if __name__ == "__main__":
-    test_ui()
+    sys.exit(test_ui())

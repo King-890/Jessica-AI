@@ -111,7 +111,7 @@ class Brain:
             if "Context from Knowledge Base" in full_prompt:
                  generated_text = "I found this in my memory:\n\n" + rag_context
             else:
-                 generated_text = "[System] I am currently untrained. Please add data to my knowledge base or Chat with me to build training data."
+                 generated_text = "I am currently running in local mode without training data. I can execute commands (e.g. 'run command whoami') or list files, but I cannot generate conversation yet."
         else:
             generated_text = self._generate(full_prompt)
         
