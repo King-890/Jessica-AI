@@ -9,7 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11"]
 
@@ -43,18 +45,18 @@ jobs:
         
         # 1. Install CPU Foundations (Explicitly)
         # We start with tensorflow-cpu to effectively 'block' standard tensorflow
-        pip install tensorflow-cpu --no-cache-dir
+        pip install tensorflow-cpu
         
         # We install torch from the CPU index (using the env var implicitly or explicit flag to be safe)
-        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --no-cache-dir
+        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
         
         # 2. Light Core Deps
         # We EXCLUDE sentence-transformers, chromadb, faiss because they pull heavy GPU binaries.
         # Codebase is now patched to handle their absence (Optional Imports).
-        pip install fastapi uvicorn pydantic pydantic-settings python-dotenv pyyaml requests psutil beautifulsoup4 croniter httpx python-multipart websockets --no-cache-dir
+        pip install fastapi uvicorn pydantic pydantic-settings python-dotenv pyyaml requests psutil beautifulsoup4 croniter httpx python-multipart websockets
         
         # 3. Dev Tools
-        pip install flake8 pytest pytest-asyncio --no-cache-dir
+        pip install flake8 pytest pytest-asyncio
         
     - name: Lint with flake8
       run: |
