@@ -254,11 +254,11 @@ class RAGManager:
             
             context_parts.append(f"\n[{i}] {path} {chunk_info}")
             context_parts.append(f"Relevance: {result['similarity']:.2f}")
-            context_parts.append(f"```")
+            context_parts.append("```")
             context_parts.append(result['content'][:500])  # Limit to 500 chars
             if len(result['content']) > 500:
                 context_parts.append("... (truncated)")
-            context_parts.append(f"```\n")
+            context_parts.append("```\n")
         
         return "\n".join(context_parts)
     
@@ -266,7 +266,6 @@ class RAGManager:
         """Re-index a previously indexed project"""
         if project_name not in self.indexed_projects:
             raise ValueError(f"Project not found: {project_name}")
-        
         project_path = self.indexed_projects[project_name]
         
         # Clear and re-index
@@ -289,8 +288,8 @@ class RAGManager:
         # Assuming VectorStore has a clear method or we just re-init
         # If VectorStore uses a heavy model, we might want to delete it
         if hasattr(self.vector_store, 'clear'):
-             # This clears data but might not free model weights if they are loaded in __init__
-             pass
+            # This clears data but might not free model weights if they are loaded in __init__
+            pass
         
         # Force garbage collection if possible or just reset logic
         # For this MVP, we'll just print log as the VectorStore is lightweight-ish (MiniLM)
@@ -310,14 +309,14 @@ class RAGManager:
     def _load_index(self):
         """Load index from disk"""
         self.vector_store.load(self.index_dir)
-        
+
         # Load project list
         import pickle
         projects_file = self.index_dir / "projects.pkl"
         if projects_file.exists():
             with open(projects_file, 'rb') as f:
                 self.indexed_projects = pickle.load(f)
-            
+
             print(f"Loaded index with {len(self.indexed_projects)} projects:")
             for name in self.indexed_projects.keys():
                 print(f"  - {name}")

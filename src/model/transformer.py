@@ -82,19 +82,19 @@ class JessicaGPT(pl.LightningModule):
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
         self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
-        self.ln_f = nn.LayerNorm(n_embd) # final layer norm
+        self.ln_f = nn.LayerNorm(n_embd)  # final layer norm
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
         
         # idx and targets are both (B,T) tensor of integers
-        tok_emb = self.token_embedding_table(idx) # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T,C)
-        x = tok_emb + pos_emb # (B,T,C)
-        x = self.blocks(x) # (B,T,C)
-        x = self.ln_f(x) # (B,T,C)
-        logits = self.lm_head(x) # (B,T,vocab_size)
+        tok_emb = self.token_embedding_table(idx)  # (B,T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device))  # (T,C)
+        x = tok_emb + pos_emb  # (B,T,C)
+        x = self.blocks(x)  # (B,T,C)
+        x = self.ln_f(x)  # (B,T,C)
+        logits = self.lm_head(x)  # (B,T,vocab_size)
 
         if targets is None:
             loss = None
@@ -125,11 +125,11 @@ class JessicaGPT(pl.LightningModule):
             # Get predictions
             logits, loss = self(idx_cond)
             # Focus on last time step
-            logits = logits[:, -1, :] # (B, C)
+            logits = logits[:, -1, :]  # (B, C)
             # Apply softmax
-            probs = F.softmax(logits, dim=-1) # (B, C)
+            probs = F.softmax(logits, dim=-1)  # (B, C)
             # Sample from distribution
-            idx_next = torch.multinomial(probs, num_samples=1) # (B, 1)
+            idx_next = torch.multinomial(probs, num_samples=1)  # (B, 1)
             # Append to sequence
-            idx = torch.cat((idx, idx_next), dim=1) # (B, T+1)
+            idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
         return idx

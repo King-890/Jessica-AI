@@ -26,19 +26,20 @@ try:
 except ImportError:
     SUPABASE_AVAILABLE = False
 
+
 class VectorStore:
     """Hybrid vector store (FAISS or Supabase)"""
-    
+
     def __init__(self, model_name: str = "all-MiniLM-L6-v2", index_path: Optional[Path] = None):
         """
-        Initialize vector store. 
+        Initialize vector store.
         Will use Supabase if SUPABASE_URL is set, otherwise FAISS.
         """
         self.model_name = model_name
         self.index_path = index_path
         self.backend = None
         self.use_supabase = False
-        
+
         # Check for Supabase config
         if SUPABASE_AVAILABLE and os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"):
             try:
@@ -48,7 +49,7 @@ class VectorStore:
                 return
             except Exception as e:
                 print(f"Failed to init Supabase store: {e}. Falling back to local.")
-        
+
         # Fallback to Local FAISS
         self.documents: List[Document] = []
         if ML_AVAILABLE:
@@ -67,15 +68,15 @@ class VectorStore:
             self.index = None
             self.dimension = 0
             print("Vector store initialized in dummy mode.")
-    
+
     def add_documents(self, documents: List[Document]):
         if self.use_supabase and self.backend:
             return self.backend.add_documents(documents)
-            
+
         # Local Logic
         if not ML_AVAILABLE or not documents:
             return
-        
+
         print(f"Generating embeddings for {len(documents)} documents (Local)...")
         texts = [doc.content for doc in documents]
         embeddings = self.model.encode(texts, show_progress_bar=False)
@@ -83,7 +84,7 @@ class VectorStore:
         self.index.add(embeddings_array)
         self.documents.extend(documents)
         print(f"Added {len(documents)} documents to local index")
-    
+
     def search(self, query: str, top_k: int = 5) -> List[Tuple[Document, float]]:
         if self.use_supabase and self.backend:
             return self.backend.search(query, top_k)
@@ -139,19 +140,19 @@ class VectorStore:
 
         print(f"Local index loaded from {load_path}")
         return {}
-    
+
     def clear(self):
         if self.use_supabase and self.backend:
             return self.backend.clear()
-        
+
         self.documents = []
         if ML_AVAILABLE:
             self.index = faiss.IndexFlatL2(self.dimension)
-    
+
     def get_stats(self) -> dict:
         if self.use_supabase and self.backend:
             return self.backend.get_stats()
-            
+
         return {
             'total_documents': len(self.documents),
             'model': self.model_name,
