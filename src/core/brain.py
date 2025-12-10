@@ -86,9 +86,12 @@ class Brain:
         Process input:
         1. Inject Persona + RAG/Tool Context via prompt.
         2. IF the model *generates* a tool call (future training), execute it.
-        3. For Phase 2/3 MVP: Heuristic triggers.
         """
         context_accumulated = []
+        print(f"🧠 Brain Process Input: '{user_input}'")
+        print(f"   Model Untrained: {self.is_model_untrained}")
+
+        # 0. Inject Persona
 
         # 0. Inject Persona
         context_accumulated.append(f"System: {self.persona}")

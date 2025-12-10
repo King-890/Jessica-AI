@@ -148,7 +148,10 @@ def main():
         # Emit signal from background thread (Safe)
         voice_signals.command_received.emit(text)
         
-    voice_manager.start_listening(on_voice_command)
+    # voice_manager.start_listening(on_voice_command) # Disabled auto-start to prevent "Ghost Recording"
+    # We will let the Dashboard control this via the Mic button.
+    # But we need to set the callback for when it DOES start.
+    voice_manager.callback = on_voice_command 
     
     # Connect components
     # repair_engine needs to know about probe failures? 
@@ -157,7 +160,7 @@ def main():
     
     # Create Main Dashboard
     print("Initializing Dashboard...")
-    dashboard = MainDashboard(config, brain, pipeline_manager, probe_scheduler, repair_engine)
+    dashboard = MainDashboard(config, brain, pipeline_manager, probe_scheduler, repair_engine, voice_manager)
     
     # Create system tray app
     tray = SystemTrayApp(app, dashboard)

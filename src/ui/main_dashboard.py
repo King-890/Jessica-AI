@@ -12,10 +12,11 @@ from src.ui.confirmation_dialog import ConfirmationDialog
 import asyncio
 
 class MainDashboard(QMainWindow):
-    def __init__(self, config, brain, pipeline_manager, probe_scheduler, repair_engine):
+    def __init__(self, config, brain, pipeline_manager, probe_scheduler, repair_engine, voice_manager=None):
         super().__init__()
         self.config = config
         self.brain = brain
+        self.voice_manager = voice_manager
         
         self.setWindowTitle("Jessica AI - HUD System")
         self.resize(1300, 850)
@@ -75,11 +76,12 @@ class MainDashboard(QMainWindow):
         self.input_field.setPlaceholderText("How can I help you?")
         self.input_field.returnPressed.connect(self.on_submit_text)
         
-        mic_btn = HUDButton("🎤")
-        mic_btn.setFixedWidth(40)
+        self.mic_btn = HUDButton("🎤") # Assign to self so we can change icon
+        self.mic_btn.setFixedWidth(40)
+        self.mic_btn.clicked.connect(self.toggle_voice)
         
         input_layout.addWidget(self.input_field)
-        input_layout.addWidget(mic_btn)
+        input_layout.addWidget(self.mic_btn)
         
         chat_layout.addWidget(input_container)
         
@@ -121,6 +123,7 @@ class MainDashboard(QMainWindow):
             return
             
         # UI Updates
+        print(f"📝 UI: Submitting text: '{text}'")
         self.chat_view.append_message("You", text, "#00f0ff")
         self.input_field.clear()
         
@@ -128,11 +131,36 @@ class MainDashboard(QMainWindow):
         # In PyQt + Asyncio (qasync), we need to schedule this on the loop
         asyncio.create_task(self.process_brain_response(text))
 
+    def toggle_voice(self):
+        """Toggle voice listening state"""
+        if not self.voice_manager:
+            print("⚠️ Voice Manager not available")
+            return
+            
+        if self.voice_manager.is_listening:
+            print("🛑 Stopping voice listening...")
+            self.voice_manager.stop_listening()
+            self.mic_btn.setText("🎤") # Reset icon
+            self.mic_btn.setStyleSheet("") # Reset style
+        else:
+            print("👂 Starting voice listening...")
+            # Use the callback set in main.py, or define a local one if needed
+            # But main.py sets voice_manager.callback nicely.
+            cb = self.voice_manager.callback
+            if cb:
+                self.voice_manager.start_listening(cb)
+                self.mic_btn.setText("🔴") # Recording Interator
+                self.mic_btn.setStyleSheet("background-color: #ff3333; border: 1px solid #ff0000;")
+            else:
+                print("⚠️ No voice callback configured!")
+
     async def process_brain_response(self, text):
+        print(f"🧠 Dashboard: Sending to brain -> '{text}'")
         self.current_assistant_message = ""
         self.chat_view.append_message("Jessica", "", "#ffffff")
         
         def update_callback(token):
+            # print(f"DEBUG: Token received: {token}") 
             self.current_assistant_message += token
             self.chat_view.update_streaming_message(self.current_assistant_message)
             
@@ -143,5 +171,9 @@ class MainDashboard(QMainWindow):
             
         try:
             await self.brain.process_input(text, update_callback, confirmation_callback)
+            print("✅ Dashboard: Brain processing complete.")
         except Exception as e:
+            print(f"❌ Dashboard Error: {e}")
+            import traceback
+            traceback.print_exc()
             self.chat_view.append_message("System", f"Error: {e}", "#ff0055")
