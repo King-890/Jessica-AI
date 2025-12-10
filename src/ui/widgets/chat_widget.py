@@ -28,14 +28,15 @@ class ChatWidget(QTextEdit):
 
         # Header
         cursor.insertHtml(
-            f'<p style="margin-top: 10px; margin-bottom: 2px;">'
-            f'<b style="color: {color};">{sender}:</b></p>'
+            f'<div style="margin-top: 12px; margin-bottom: 4px;">'
+            f'<span style="font-weight: bold; color: {color}; font-size: 14px;">{sender}</span>'
+            f'</div>'
         )
 
         # Body
         formatted_text = self._format_text(text)
         cursor.insertHtml(
-            f'<div style="color: #a0c0ff; margin-left: 10px; margin-bottom: 5px;" '
+            f'<div style="color: #a0c0ff; margin-left: 0px; margin-bottom: 8px; line-height: 1.4;" '
             f'id="streaming">{formatted_text}</div>'
         )
 

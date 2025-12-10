@@ -119,14 +119,20 @@ class Brain:
             update_callback("[Thinking...]\n")
 
         if self.is_model_untrained:
-            # Fallback: Don't let random model hallucinate.
-            # If we have RAG context, show it. If not, give generic response.
-            if "Context from Knowledge Base" in full_prompt:
-                generated_text = "I found this in my memory:\n\n" + rag_context
+            # Fallback: Untrained Mode
+            # 1. Simple Keyword Heuristics (Fake "Smartness")
+            lower_input = user_input.lower()
+            if any(x in lower_input for x in ["hi", "hello", "hey", "greetings"]):
+                generated_text = "Hello! I am Jessica. I am currently running in untrained mode, but I am ready to help you execute commands or manage files."
+            elif "upload" in lower_input and "training" in lower_input:
+                generated_text = "I can help with that. Please run the upload script via the command line for now."
+            # 2. RAG Context (Filter garbage)
+            elif "Context from Knowledge Base" in full_prompt and len(rag_context) > 50:
+                 generated_text = f"I found some relevant information in my local files:\n\n{rag_context}\n\n(Note: This is raw retrieved data)"
             else:
                 generated_text = (
                     "I am currently running in local mode without training data. "
-                    "I can execute commands (e.g. 'run command whoami') or list files, but I cannot generate conversation yet."
+                    "I can execute commands (e.g. 'run command whoami') or list files."
                 )
         else:
             generated_text = self._generate(full_prompt)
