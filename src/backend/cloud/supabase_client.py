@@ -97,12 +97,13 @@ def fetch_updates_metadata() -> Dict[str, Any]:
 def upload_file(bucket: str, path: str, file_path: str) -> bool:
     """Generic upload file to Supabase Storage."""
     cli = get_client()
-    if not cli: return False
+    if not cli:
+        return False
     try:
-        if not os.path.exists(file_path): return False
+        if not os.path.exists(file_path):
+            return False
         with open(file_path, "rb") as f:
             cli.storage.from_(bucket).upload(path, f.read(), {"upsert": "true"})
-        return True
         return True
     except Exception as e:
         print(f"DEBUG Upload Error: {e}")
@@ -112,7 +113,8 @@ def upload_file(bucket: str, path: str, file_path: str) -> bool:
 def download_file(bucket: str, path: str, dest_path: str) -> bool:
     """Generic download file from Supabase Storage."""
     cli = get_client()
-    if not cli: return False
+    if not cli:
+        return False
     try:
         data = cli.storage.from_(bucket).download(path)
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
