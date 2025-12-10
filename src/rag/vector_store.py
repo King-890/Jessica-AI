@@ -87,54 +87,56 @@ class VectorStore:
     def search(self, query: str, top_k: int = 5) -> List[Tuple[Document, float]]:
         if self.use_supabase and self.backend:
             return self.backend.search(query, top_k)
-            
+
         # Local Logic
         if not ML_AVAILABLE or not self.documents:
             return []
-        
+
         query_embedding = self.model.encode([query])[0].astype('float32')
         distances, indices = self.index.search(np.array([query_embedding]), min(top_k, len(self.documents)))
-        
+
         results = []
         for dist, idx in zip(distances[0], indices[0]):
             if idx < len(self.documents):
                 similarity = 1.0 / (1.0 + dist)
                 results.append((self.documents[idx], similarity))
         return results
-    
+
     def save(self, path: Optional[Path] = None):
         if self.use_supabase:
             print("Supabase store does not need explicit save (interaction persistence is auto).")
             return
-            
+
         # Local Logic
         save_path = path or self.index_path
-        if not save_path: return
+        if not save_path:
+            return
         save_path = Path(save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         if ML_AVAILABLE:
             faiss.write_index(self.index, str(save_path / "faiss.index"))
         with open(save_path / "documents.pkl", 'wb') as f:
             pickle.dump(self.documents, f)
-        
+
         print(f"Local index saved to {save_path}")
-    
+
     def load(self, path: Optional[Path] = None):
         if self.use_supabase:
             print("Supabase store is stateless/remote. Nothing to load locally.")
             return {}
-            
+
         # Local Logic
         load_path = path or self.index_path
-        if not load_path: return {}
+        if not load_path:
+            return {}
         load_path = Path(load_path)
-        
+
         if ML_AVAILABLE:
             self.index = faiss.read_index(str(load_path / "faiss.index"))
         with open(load_path / "documents.pkl", 'rb') as f:
             self.documents = pickle.load(f)
-            
+
         print(f"Local index loaded from {load_path}")
         return {}
     
