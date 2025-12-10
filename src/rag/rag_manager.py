@@ -96,13 +96,17 @@ class RAGManager:
         
         print(f"Found {len(files)} files to process in {project_path}")
         
+        total_chunks = 0
+        
         for i, file_path in enumerate(files):
             try:
                 # Process single file
                 file_docs = self.processor.process_file(file_path, project_path)
                 if file_docs:
                     current_batch.extend(file_docs)
-                    print(f"  Processed: {file_path.name} ({len(file_docs)} chunks)")
+                    count = len(file_docs)
+                    total_chunks += count
+                    print(f"  Processed: {file_path.name} ({count} chunks)")
             except Exception as e:
                 print(f"  [ERROR] Failed to process {file_path.name}: {e}")
                 # Continue to next file
@@ -126,13 +130,10 @@ class RAGManager:
         self._save_index()
         
         # Print summary
-        file_summary = self.processor.get_file_summary(documents)
         print(f"\n{'='*60}")
         print(f"Indexing complete!")
-        print(f"Files indexed: {len(file_summary)}")
-        print(f"Total chunks: {len(documents)}")
-        print(f"{'='*60}\n")
-        print(f"Total chunks: {len(documents)}")
+        print(f"Total files scanned: {len(files)}")
+        print(f"Total chunks indexed: {total_chunks}")
         print(f"{'='*60}\n")
     
     def ingest_git_repo(self, repo_url: str, repo_name: Optional[str] = None):
