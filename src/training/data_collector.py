@@ -1,8 +1,8 @@
 import json
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, Any
+
 
 class DataCollector:
     """
@@ -13,7 +13,7 @@ class DataCollector:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.current_session_file = self.data_dir / f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
-        
+
     def save_interaction(self, user_input: str, assistant_response: str, context: Dict[str, Any] = None):
         """Save a single interaction pair"""
         entry = {
@@ -22,10 +22,10 @@ class DataCollector:
             "assistant": assistant_response,
             "context": context or {}
         }
-        
+
         with open(self.current_session_file, 'a', encoding='utf-8') as f:
             f.write(json.dumps(entry) + "\n")
-            
+
         # Sync to Supabase Storage (Datasets bucket)
         # We upload the whole file each time for simplicity in this "thin client" MVP
         # Ideally this would be batched or done at session end.
@@ -35,7 +35,7 @@ class DataCollector:
             upload_file("datasets", rel_path, str(self.current_session_file))
         except Exception as e:
             print(f"Failed to sync training data: {e}")
-            
+
     def get_stats(self) -> Dict[str, int]:
         """Return stats about collected data"""
         count = 0
