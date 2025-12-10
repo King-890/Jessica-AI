@@ -1,9 +1,10 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from typing import List
 from src.model.tokenizer import SimpleTokenizer
 import json
 from pathlib import Path
+
 
 class TextDataset(Dataset):
     """
@@ -12,7 +13,7 @@ class TextDataset(Dataset):
     def __init__(self, data: List[str], tokenizer: SimpleTokenizer, block_size: int):
         self.tokenizer = tokenizer
         self.block_size = block_size
-        
+
         # Simple concatenation strategy
         text = "\n".join(data)
         self.tokens = tokenizer.encode(text)
@@ -27,11 +28,12 @@ class TextDataset(Dataset):
         # Get random chunk via stride
         start_idx = idx * self.block_size
         end_idx = start_idx + self.block_size + 1
-        
-        chunk = self.tokens[start_idx : end_idx]
+
+        chunk = self.tokens[start_idx:end_idx]
         x = torch.tensor(chunk[:-1], dtype=torch.long)
         y = torch.tensor(chunk[1:], dtype=torch.long)
         return x, y
+
 
 class DatasetBuilder:
     """
@@ -40,7 +42,7 @@ class DatasetBuilder:
     def __init__(self, tokenizer: SimpleTokenizer):
         self.tokenizer = tokenizer
         self.interactions = []  # Store manual interactions
-        
+
     def add_interaction(self, user_text: str, assistant_text: str):
         """Add a single interaction pair"""
         self.interactions.append((user_text, assistant_text))
@@ -65,7 +67,7 @@ class DatasetBuilder:
                         # Learn from both user (questions) and assistant (responses)
                         data.append(entry.get('user', ''))
                         data.append(entry.get('assistant', ''))
-                    except:
+                    except Exception:
                         pass
         return TextDataset(data, self.tokenizer, block_size)
 
@@ -78,6 +80,6 @@ class DatasetBuilder:
         # For simplicity, we just use a placeholder text if store not accessible provided
         data = ["Jessica AI is a helpful assistant.", "Code is law."]
         if hasattr(vector_store, 'documents'):
-            data.extend([doc.page_content for doc in vector_store.documents])
-            
+            data.extend([doc.content for doc in vector_store.documents])
+
         return TextDataset(data, self.tokenizer, block_size)
