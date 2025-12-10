@@ -13,12 +13,13 @@ from .web_crawler import WebCrawler
 class RAGManager:
     """Manages RAG indexing and querying"""
     
-    def __init__(self, index_dir: Path = None):
+    def __init__(self, index_dir: Path = None, enable_training: bool = True):
         """
         Initialize RAG manager
         
         Args:
             index_dir: Directory to store index files
+            enable_training: Whether to scan and index local training data on startup
         """
         if index_dir is None:
             index_dir = Path.cwd() / ".jessica" / "rag_index"
@@ -42,7 +43,10 @@ class RAGManager:
             print("No existing index found, starting fresh")
             
         # Ensure training data is indexed (or at least check)
-        self.index_training_data()
+        if enable_training:
+            self.index_training_data()
+        else:
+            print("Local training/indexing disabled (Cloud/Lite Mode).")
 
     def index_training_data(self):
         """Index the training_data directory if it exists"""

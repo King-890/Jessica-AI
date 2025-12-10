@@ -85,20 +85,26 @@ def main():
     backend_thread.start()
     
     # RAG Manager - Enabled for Training/RAG flow
-    print("\nInitializing RAG system (Training Mode)...")
-    rag_manager = RAGManager(index_dir=project_root / ".jessica" / "rag_index")
+    # RAG Manager - Enabled for Training/RAG flow
+    print("\nInitializing RAG system (Cloud Mode)...")
+    rag_manager = RAGManager(
+        index_dir=project_root / ".jessica" / "rag_index",
+        enable_training=False  # Disable local indexing for fast startup
+    )
     
-    # Check if indexing is needed
+    # Check if indexing is needed (informational only now)
     try:
         stats = rag_manager.get_stats()
-        needs_indexing = 'Jessica AI' not in stats.get('indexed_projects', [])
+        # needs_indexing = 'Jessica AI' not in stats.get('indexed_projects', [])
     except:
-        needs_indexing = True
+        pass
+        # needs_indexing = True
         
-    if needs_indexing:
-        print("\nRAG indexing will run in background...")
-    else:
-        print(f"RAG system ready with {stats['vector_store']['total_documents']} documents\n")
+    # if needs_indexing:
+    #    print("\nRAG indexing will run in background...")
+    # else:
+    print(f"RAG system ready (Cloud Connected)\n")
+    print(f"RAG system ready (Cloud Connected)\n")
     needs_indexing = False
     
     # Initialize Core
