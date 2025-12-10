@@ -10,12 +10,19 @@ import numpy as np
 
 # Optional Imports for CI/Lightweight mode
 try:
+    if os.getenv("CI"):
+        # Github Actions / CI environment
+        # We explicitly disable ML components to prevent timeout/hangs during tests
+        # unless explicitly requested via FORCE_ML
+        if not os.getenv("FORCE_ML"):
+            raise ImportError("CI Mode: Skipping ML dependencies")
+
     import faiss
     from sentence_transformers import SentenceTransformer
     ML_AVAILABLE = True
 except ImportError:
     ML_AVAILABLE = False
-    print("Warning: RAG dependencies (faiss, sentence-transformers) not found. RAG features disabled.")
+    print("Warning: RAG dependencies (faiss, sentence-transformers) not found or CI mode active. RAG features disabled.")
 
 
 from .document_processor import Document
