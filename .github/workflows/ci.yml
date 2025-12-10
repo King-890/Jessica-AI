@@ -71,5 +71,6 @@ jobs:
     - name: Run tests
       env:
         PYTHONPATH: ${{ github.workspace }}
+        QT_QPA_PLATFORM: offscreen
       run: |
         pytest
