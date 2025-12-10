@@ -25,48 +25,56 @@ class ChatWidget(QTextEdit):
         """Format and append a message"""
         cursor = self.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
+        
+        # Force new block
+        cursor.insertBlock()
 
         # Header
         cursor.insertHtml(
-            f'<div style="margin-top: 12px; margin-bottom: 4px;">'
-            f'<span style="font-weight: bold; color: {color}; font-size: 14px;">{sender}</span>'
+            f'<div style="margin-top: 10px; font-weight: bold; color: {color}; font-size: 14px;">'
+            f'{sender}:'
             f'</div>'
         )
 
+        # Force new block for body
+        cursor.insertBlock()
+        
+        # Save this position for streaming updates
+        self.streaming_cursor = self.textCursor() # Copy current cursor
+        self.streaming_start_pos = self.streaming_cursor.position()
+        
         # Body
         formatted_text = self._format_text(text)
         cursor.insertHtml(
-            f'<div style="color: #a0c0ff; margin-left: 0px; margin-bottom: 8px; line-height: 1.4;" '
-            f'id="streaming">{formatted_text}</div>'
+            f'<div style="color: #a0c0ff; margin-left: 10px; margin-bottom: 10px; line-height: 1.4;">'
+            f'{formatted_text}</div>'
         )
 
+        # Force spacer block
+        cursor.insertBlock()
+        cursor.insertHtml('<br>')
+
         self.setTextCursor(cursor)
-        self.files_cursor = cursor  # Keep ref if needed
         self.ensureCursorVisible()
 
     def update_streaming_message(self, text):
         """Update the last message content (for streaming response)"""
-        html = self.toHtml()
+        if not hasattr(self, 'streaming_cursor') or not self.streaming_cursor:
+            return
+
+        curs = self.streaming_cursor
+        
+        # Select the text range we inserted
+        curs.setPosition(self.streaming_start_pos)
+        curs.movePosition(curs.MoveOperation.End, curs.MoveMode.KeepAnchor)
+        
+        # Replace
         formatted_text = self._format_text(text)
-
-        # Simple HTML string replacement for the 'streaming' id
-        # This is faster/easier than DOM manipulation for simple updates
-        # This is faster/easier than DOM manipulation for simple updates
-        if 'id="streaming">' in html:
-            parts = html.rsplit('id="streaming">', 1)
-            if len(parts) == 2:
-                before = parts[0] + 'id="streaming">'
-                after = parts[1].split('</div>', 1)
-                if len(after) == 2:
-                    new_html = before + formatted_text + '</div>' + after[1]
-                    self.setHtml(new_html)
-                    # print(f"DEBUG: Chat HTML updated. Len: {len(new_html)}")
-
-                    # Scroll to bottom
-                    cursor = self.textCursor()
-                    cursor.movePosition(cursor.MoveOperation.End)
-                    self.setTextCursor(cursor)
-                    self.ensureCursorVisible()
+        # Using insertHtml here allows color/style to persist
+        curs.insertHtml(
+            f'<div style="color: #a0c0ff; margin-left: 10px; margin-bottom: 10px; line-height: 1.4;">'
+            f'{formatted_text}</div>'
+        )
 
     def _format_text(self, text):
         if not text:

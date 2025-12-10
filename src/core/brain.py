@@ -128,11 +128,16 @@ class Brain:
                 generated_text = "I can help with that. Please run the upload script via the command line for now."
             # 2. RAG Context (Filter garbage)
             elif "Context from Knowledge Base" in full_prompt and len(rag_context) > 50:
-                 generated_text = f"I found some relevant information in my local files:\n\n{rag_context}\n\n(Note: This is raw retrieved data)"
+                 generated_text = f"I found some relevant information in my local files:\n\n{rag_context}\n\n(Note: This is retrieved data, I cannot reason about it yet)"
+            # 3. Tool/Search Output - DISPLAY IT!
+            elif "Tool Output" in full_prompt:
+                # Extract the tool output from the prompt to show it
+                # We know it was appended to context_accumulated
+                generated_text = f"I executed that command/search. Here is the result:\n\n{tool_output}"
             else:
                 generated_text = (
                     "I am currently running in local mode without training data. "
-                    "I can execute commands (e.g. 'run command whoami') or list files."
+                    "I can execute commands (e.g. 'run command whoami'), list files, or search the web."
                 )
         else:
             generated_text = self._generate(full_prompt)

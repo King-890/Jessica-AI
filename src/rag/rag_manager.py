@@ -48,6 +48,53 @@ class RAGManager:
         else:
             print("Local training/indexing disabled (Cloud/Lite Mode).")
 
+    def download_training_data(self):
+        """Download training data from Supabase 'training-data' bucket"""
+        try:
+            from src.backend.cloud.supabase_client import get_client, download_file
+            client = get_client()
+            if not client:
+                print("⚠️ Cloud Sync: Supabase client not available.")
+                return
+
+            print("☁️ Cloud Sync: Checking for training data...")
+            # List files in bucket
+            try:
+                files = client.storage.from_("training-data").list()
+            except Exception as e:
+                print(f"⚠️ Cloud Sync: Could not list bucket 'training-data': {e}")
+                return
+
+            if not files:
+                print("☁️ Cloud Sync: No files found in 'training-data'.")
+                return
+
+            training_dir = self.index_dir.parent.parent / "training_data"
+            training_dir.mkdir(exist_ok=True)
+
+            download_count = 0
+            for file_obj in files:
+                name = file_obj.get("name")
+                if not name or not name.endswith(".jsonl"):
+                    continue
+                
+                local_path = training_dir / name
+                # Simple check: if file size differs or missing, download
+                # metadata = file_obj.get("metadata", {}) # size?
+                # For now, simplistic: overwrite if missing.
+                if not local_path.exists():
+                     print(f"   ⬇️ Downloading {name}...")
+                     if download_file("training-data", name, str(local_path)):
+                         download_count += 1
+            
+            if download_count > 0:
+                print(f"☁️ Cloud Sync: Downloaded {download_count} new files.")
+            else:
+                print("☁️ Cloud Sync: Local data is up to date.")
+
+        except Exception as e:
+            print(f"❌ Cloud Sync Error: {e}")
+
     def index_training_data(self):
         """Index the training_data directory if it exists"""
         training_dir = self.index_dir.parent / "training_data"

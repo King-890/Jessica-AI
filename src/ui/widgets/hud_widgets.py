@@ -71,7 +71,8 @@ class AvatarWidget(QWidget):
         painter.setBrush(QBrush(head_gradient))
         painter.setPen(Qt.PenStyle.NoPen)
         # Draw slightly elongated circle for head
-        painter.drawEllipse(center, radius * 0.85, radius)
+        if radius > 0:
+            painter.drawEllipse(center, radius * 0.85, float(radius))
 
         # Draw "Eyes" (Simple glowing slits)
         eye_y = center.y() - (radius * 0.1)

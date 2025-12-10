@@ -86,24 +86,38 @@ def main():
     
     # RAG Manager - Enabled for Training/RAG flow
     # RAG Manager - Enabled for Training/RAG flow
+    # RAG Manager - Cloud Sync & Training
     print("\nInitializing RAG system (Cloud Mode)...")
     rag_manager = RAGManager(
         index_dir=project_root / ".jessica" / "rag_index",
-        enable_training=False  # Disable local indexing for fast startup
+        enable_training=True  # ENABLED: Scan for new files
     )
     
-    # Check if indexing is needed (informational only now)
+    # Sync with Cloud
+    print("☁️ Syncing training data from Supabase...")
+    rag_manager.download_training_data()
+    
+    # Check if indexing is needed
     try:
         stats = rag_manager.get_stats()
-        # needs_indexing = 'Jessica AI' not in stats.get('indexed_projects', [])
     except:
         pass
-        # needs_indexing = True
-        
-    # if needs_indexing:
-    #    print("\nRAG indexing will run in background...")
-    # else:
+    
     print(f"RAG system ready (Cloud Connected)\n")
+    
+    # Enable Continuous Learning Background Loop
+    try:
+        from src.backend.continuous_learning import ContinuousLearner
+        def start_learning_loop():
+             learner = ContinuousLearner()
+             # Run in separate thread, infinite loop
+             learner.start_loop(single_run=False)
+        
+        learning_thread = threading.Thread(target=start_learning_loop, daemon=True)
+        learning_thread.start()
+        print("🧠 Continuous Learning active in background.")
+    except Exception as e:
+        print(f"⚠️ Failed to start learning loop: {e}")
     print(f"RAG system ready (Cloud Connected)\n")
     needs_indexing = False
     
