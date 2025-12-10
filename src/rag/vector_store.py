@@ -52,10 +52,16 @@ class VectorStore:
         # Fallback to Local FAISS
         self.documents: List[Document] = []
         if ML_AVAILABLE:
-            self.model = SentenceTransformer(model_name)
-            self.dimension = self.model.get_sentence_embedding_dimension()
-            self.index = faiss.IndexFlatL2(self.dimension)
-            print(f"Local Vector store initialized with model: {model_name}")
+            try:
+                self.model = SentenceTransformer(model_name)
+                self.dimension = self.model.get_sentence_embedding_dimension()
+                self.index = faiss.IndexFlatL2(self.dimension)
+                print(f"Local Vector store initialized with model: {model_name}")
+            except Exception as e:
+                print(f"Failed to load SentenceTransformer model: {e}. Falling back to dummy mode.")
+                self.model = None
+                self.index = None
+                self.dimension = 0
         else:
             self.model = None
             self.index = None
