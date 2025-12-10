@@ -161,15 +161,21 @@ class ContinuousLearner:
                 os.remove(temp_path)
                 print(" - Local temp cleaned.")
 
-    def start_loop(self, single_run: bool = False):
-        print("Jessica Learner Started.")
+    def start_loop(self, single_run: bool = False, max_duration: int = 0):
+        print(f"Jessica Learner Started. (Single Run: {single_run}, Max Duration: {max_duration}s)")
+        start_time = time.time()
         
         while True:
             # 1. Check Kill Switch
             if not self.should_run():
                 print("Learning paused by command (Supabase setting 'learning_enabled'=false). Exiting.")
                 break
-                
+            
+            # Check duration limit
+            if max_duration > 0 and (time.time() - start_time) > max_duration:
+                print("Max duration reached. Exiting gracefully.")
+                break
+
             # 2. Pick a random topic (Security prioritized)
             topic = random.choice(TOPICS)
             try:
@@ -177,7 +183,10 @@ class ContinuousLearner:
             except Exception as e:
                 print(f"ERROR exploring {topic}: {e}")
             
-            if single_run:
+            # Logic: 
+            # If max_duration is SET, we ignore single_run and loop until time is up.
+            # If max_duration is 0, we respect single_run.
+            if max_duration == 0 and single_run:
                 print("Single run completed (GitHub Action mode).")
                 break
                 
@@ -189,14 +198,16 @@ class ContinuousLearner:
             print(f"[Wait] Sleeping for {sleep_sec}s...")
             time.sleep(sleep_sec)
 
-if __name__ == "__main__":
-    from dotenv import load_dotenv
-    load_dotenv()
+    import argparse
     
     # Check if running in CI/Cloud environment to decide loop vs single run
     # For GitHub actions, we might want to run for a limit duration or once per schedule trigger
     # Let's run once per trigger to avoid timeouts, but trigger often.
     is_ci = os.getenv("CI") == "true"
     
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--duration", type=int, default=0, help="Run for N seconds then exit (0 = infinite or single run based on env)")
+    args = parser.parse_args()
+    
     learner = ContinuousLearner()
-    learner.start_loop(single_run=is_ci)
+    learner.start_loop(single_run=is_ci, max_duration=args.duration)

@@ -2,13 +2,14 @@ name: "Jessica AI Cloud Learning"
 
 on:
   schedule:
-    # Run every 15 minutes roughly 24/7
+    # Run every 5 minutes (user requested 300s restart)
     - cron: '*/5 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
   cloud-training:
     runs-on: ubuntu-latest
+    timeout-minutes: 10 # Short timeout
     
     steps:
     - name: Checkout Code
@@ -26,7 +27,7 @@ jobs:
         # or we can install from requirements if specific cloud requirements exist
         if [ -f requirements_cloud.txt ]; then pip install -r requirements_cloud.txt; fi
         
-    - name: Run Learner
+    - name: Run Learner (Continuous 300s Loop)
       env:
         # Secrets must be configured in GitHub Repo Settings -> Secrets
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -36,4 +37,5 @@ jobs:
         GOOGLE_CSE_CX: ${{ secrets.GOOGLE_CSE_CX }}
         CI: "true"
       run: |
-        python src/backend/continuous_learning.py
+        # Run for 280 seconds (approx 4.5 mins) then exit, allowing next 5-min job to start
+        python src/backend/continuous_learning.py --duration 280
