@@ -3,7 +3,7 @@ name: "Jessica AI Cloud Learning"
 on:
   schedule:
     # Run every 15 minutes roughly 24/7
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
         
     - name: Install Dependencies
       run: |
-        pip install requests beautifulsoup4 duckduckgo-search supabase sentence-transformers numpy
+        pip install requests beautifulsoup4 duckduckgo-search supabase sentence-transformers numpy torch
         # Note: 'faiss-cpu' is needed if not using supabase exclusively, but our code handles missing deps gracefully
         # or we can install from requirements if specific cloud requirements exist
         if [ -f requirements_cloud.txt ]; then pip install -r requirements_cloud.txt; fi
