@@ -6,6 +6,7 @@ from src.rag.rag_manager import RAGManager
 from src.training.data_collector import DataCollector
 from src.model.transformer import JessicaGPT
 from src.model.tokenizer import SimpleTokenizer
+from src.backend.ai_core import google_search
 
 
 class Brain:
@@ -152,6 +153,19 @@ class Brain:
         Temporary logic to trigger MCP tools based on keywords.
         """
         user_lower = user_input.lower()
+
+        if "search" in user_lower:
+            # G. Web Search
+            # Simple heuristic: "search <query>"
+            import re
+            match = re.search(r"(search|google)\s+(.+)", user_input, re.IGNORECASE)
+            if match:
+                query = match.group(2).strip()
+                if update_callback: update_callback(f"[Searching Web: {query}]...")
+                try:
+                    return google_search(query)
+                except Exception as e:
+                    return f"Search Error: {e}"
 
         # A. Shell Execution
         if "command" in user_lower or "exec" in user_lower or "run terminal" in user_lower:
