@@ -2,8 +2,7 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
 from src.model.transformer import JessicaGPT
-from src.training.dataset import DatasetBuilder, TextDataset
-from src.model.tokenizer import SimpleTokenizer
+
 
 class JessicaLightningModule(pl.LightningModule):
     """
@@ -17,7 +16,8 @@ class JessicaLightningModule(pl.LightningModule):
         self.batch_size = batch_size
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0) # 0 workers for Win compatibility
+        # 0 workers for Win compatibility
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0)
 
     def training_step(self, batch, batch_idx):
         loss = self.model.training_step(batch, batch_idx)
