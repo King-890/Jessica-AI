@@ -1,8 +1,7 @@
-
 import os
 import glob
-from pathlib import Path
 from src.backend.cloud.supabase_client import upload_file, get_client
+
 
 # Define paths to migrate
 PATHS_TO_MIGRATE = [
@@ -17,6 +16,7 @@ PATHS_TO_MIGRATE = [
     {"pattern": "*.jsonl", "bucket": "datasets"},
 ]
 
+
 def migrate():
     print("Starting Cloud Migration...")
     cli = get_client()
@@ -30,7 +30,7 @@ def migrate():
     for item in PATHS_TO_MIGRATE:
         pattern = item["pattern"]
         bucket = item["bucket"]
-        
+
         # Ensure bucket exists (this is a best effort, requires permissions)
         try:
             buckets = cli.storage.list_buckets()
@@ -47,7 +47,7 @@ def migrate():
         for file_path in files:
             if os.path.isdir(file_path):
                 continue
-                
+
             # Skip small files if needed, or specific extensions
             # Check file size (e.g. skip empty files)
             if os.path.getsize(file_path) == 0:
@@ -56,17 +56,18 @@ def migrate():
             rel_path = os.path.relpath(file_path, os.getcwd())
             # Normalize path for storage (forward slashes)
             storage_path = rel_path.replace("\\", "/")
-            
+
             print(f"Uploading {storage_path} to [{bucket}]...")
             if upload_file(bucket, storage_path, file_path):
                 print(f" [OK] {file_path}")
                 success_count += 1
             else:
                 print(f" [FAIL] {file_path}")
-            
+
             total_files += 1
 
     print(f"\nMigration Complete. {success_count}/{total_files} files uploaded.")
+
 
 if __name__ == "__main__":
     # Load env manually if not set
