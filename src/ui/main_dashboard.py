@@ -95,9 +95,15 @@ class MainDashboard(QMainWindow):
         
         # Sliders
         settings_layout.addWidget(QLabel("Voice Volume"))
-        settings_layout.addWidget(NeonSlider(Qt.Orientation.Horizontal))
-        settings_layout.addWidget(QLabel("Processing Power"))
-        settings_layout.addWidget(NeonSlider(Qt.Orientation.Horizontal))
+        self.vol_slider = NeonSlider(Qt.Orientation.Horizontal)
+        self.vol_slider.setValue(80) # Default
+        self.vol_slider.valueChanged.connect(self.on_volume_changed)
+        settings_layout.addWidget(self.vol_slider)
+        
+        settings_layout.addWidget(QLabel("Processing Power (Simulated)"))
+        self.power_slider = NeonSlider(Qt.Orientation.Horizontal)
+        self.power_slider.setValue(100)
+        settings_layout.addWidget(self.power_slider)
         
         grid.addWidget(settings_frame, 1, 2, 1, 1) # Row 1, Col 2
         
@@ -160,7 +166,7 @@ class MainDashboard(QMainWindow):
         self.chat_view.append_message("Jessica", "", "#ffffff")
         
         def update_callback(token):
-            # print(f"DEBUG: Token received: {token}") 
+            print(f"DEBUG: Token received: {repr(token)}") 
             self.current_assistant_message += token
             self.chat_view.update_streaming_message(self.current_assistant_message)
             
@@ -177,3 +183,16 @@ class MainDashboard(QMainWindow):
             import traceback
             traceback.print_exc()
             self.chat_view.append_message("System", f"Error: {e}", "#ff0055")
+
+    def on_volume_changed(self, value):
+        print(f"🔊 Volume set to: {value}")
+        if self.voice_manager and self.voice_manager.tts:
+            try:
+                self.voice_manager.tts.engine.setProperty('volume', value / 100.0)
+            except:
+                pass
+
+    def closeEvent(self, event):
+        if self.voice_manager and self.voice_manager.is_listening:
+            self.voice_manager.stop_listening()
+        event.accept()

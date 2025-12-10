@@ -50,6 +50,7 @@ class ChatWidget(QTextEdit):
 
         # Simple HTML string replacement for the 'streaming' id
         # This is faster/easier than DOM manipulation for simple updates
+        # This is faster/easier than DOM manipulation for simple updates
         if 'id="streaming">' in html:
             parts = html.rsplit('id="streaming">', 1)
             if len(parts) == 2:
@@ -58,6 +59,7 @@ class ChatWidget(QTextEdit):
                 if len(after) == 2:
                     new_html = before + formatted_text + '</div>' + after[1]
                     self.setHtml(new_html)
+                    # print(f"DEBUG: Chat HTML updated. Len: {len(new_html)}")
 
                     # Scroll to bottom
                     cursor = self.textCursor()
