@@ -1,10 +1,11 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
-    QFrame, QGraphicsDropShadowEffect, QSizePolicy
+    QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QFrame,
+    QProgressBar, QScrollArea, QLineEdit, QApplication,
+    QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, QSize, pyqtSignal
-from PyQt6.QtGui import QColor, QIcon
-
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
+import typing
 class ModernCard(QFrame):
     """A styled card container with shadow and hover effect"""
     def __init__(self, parent=None):
