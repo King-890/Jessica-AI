@@ -229,6 +229,7 @@ class DocumentProcessor:
         
         for file_path in directory.rglob('*'):
             if file_path.is_file():
+                print(f"  [DEBUG] Starting: {file_path.name}")
                 file_docs = self.process_file(file_path, directory)
                 documents.extend(file_docs)
                 

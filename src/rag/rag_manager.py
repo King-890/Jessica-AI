@@ -85,15 +85,35 @@ class RAGManager:
         print(f"Path: {project_path}")
         print(f"{'='*60}\n")
         
-        # Process all files in the project
-        documents = self.processor.process_directory(project_path)
+        # Process files in batches to avoid MemoryError
+        batch_size = 10
+        current_batch = []
+        files = [f for f in project_path.rglob('*') if f.is_file()]
         
-        if not documents:
-            print("No documents found to index")
-            return
+        print(f"Found {len(files)} files to process in {project_path}")
         
-        # Add to vector store
-        self.vector_store.add_documents(documents)
+        for i, file_path in enumerate(files):
+            try:
+                # Process single file
+                file_docs = self.processor.process_file(file_path, project_path)
+                if file_docs:
+                    current_batch.extend(file_docs)
+                    print(f"  Processed: {file_path.name} ({len(file_docs)} chunks)")
+            except Exception as e:
+                print(f"  [ERROR] Failed to process {file_path.name}: {e}")
+                # Continue to next file
+                continue
+            
+            # Flush batch if full
+            if len(current_batch) >= 50 or (i + 1) % batch_size == 0:
+                print(f"  Flushing batch of {len(current_batch)} chunks...")
+                self.vector_store.add_documents(current_batch)
+                current_batch = [] # Clear memory
+        
+        # Flush remaining
+        if current_batch:
+            print(f"  Flushing final batch of {len(current_batch)} chunks...")
+            self.vector_store.add_documents(current_batch)
         
         # Track indexed project
         self.indexed_projects[project_name] = project_path
