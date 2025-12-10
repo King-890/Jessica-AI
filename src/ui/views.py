@@ -19,17 +19,21 @@ class PlaceholderView(QWidget):
         desc_label.setStyleSheet("font-size: 14px; color: #808080; margin-top: 10px;")
         layout.addWidget(desc_label, 0, Qt.AlignmentFlag.AlignCenter)
 
+
 class BrainView(PlaceholderView):
     def __init__(self, parent=None):
         super().__init__("BRAIN ACTIVITY", "🧠", parent)
+
 
 class FilesView(PlaceholderView):
     def __init__(self, parent=None):
         super().__init__("FILE EXPLORER", "📁", parent)
 
+
 class PipelinesView(PlaceholderView):
     def __init__(self, parent=None):
         super().__init__("PIPELINE MANAGER", "⚡", parent)
+
 
 class SettingsView(PlaceholderView):
     def __init__(self, parent=None):

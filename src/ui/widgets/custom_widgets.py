@@ -1,17 +1,17 @@
 from PyQt6.QtWidgets import (
     QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QFrame,
-    QProgressBar, QScrollArea, QLineEdit, QApplication,
     QGraphicsDropShadowEffect
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
-import typing
+
+
 class ModernCard(QFrame):
     """A styled card container with shadow and hover effect"""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("Card")
-        
+
         # Shadow
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(20)
@@ -20,12 +20,13 @@ class ModernCard(QFrame):
         shadow.setColor(QColor(0, 0, 0, 80))
         self.setGraphicsEffect(shadow)
 
+
 class StatCard(ModernCard):
     """Card displaying a specific metric (e.g. Memory Usage)"""
     def __init__(self, title, value, icon_name=None, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
-        
+
         # Header
         header_layout = QHBoxLayout()
         self.title_label = QLabel(title)
@@ -35,16 +36,17 @@ class StatCard(ModernCard):
         if icon_name:
             # Placeholder for icon
             pass
-            
+
         layout.addLayout(header_layout)
-        
+
         # Value
         self.value_label = QLabel(value)
         self.value_label.setStyleSheet("color: #e0e6ed; font-size: 24px; font-weight: bold;")
         layout.addWidget(self.value_label)
-        
+
     def update_value(self, new_value):
         self.value_label.setText(new_value)
+
 
 class SidebarButton(QPushButton):
     """Custom button for Sidebar navigation"""
@@ -73,6 +75,7 @@ class SidebarButton(QPushButton):
                 color: #e0e6ed;
             }
         """)
+
 
 class ActionButton(QPushButton):
     """Primary action button (Neon)"""

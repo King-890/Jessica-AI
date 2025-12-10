@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QTextEdit
-from PyQt6.QtCore import Qt
+
 
 class ChatWidget(QTextEdit):
     """
@@ -20,28 +20,34 @@ class ChatWidget(QTextEdit):
                 padding: 10px;
             }
         """)
-        
+
     def append_message(self, sender, text, color="#00f0ff"):
         """Format and append a message"""
         cursor = self.textCursor()
         cursor.movePosition(cursor.MoveOperation.End)
-        
+
         # Header
-        cursor.insertHtml(f'<p style="margin-top: 10px; margin-bottom: 2px;"><b style="color: {color};">{sender}:</b></p>')
-        
+        cursor.insertHtml(
+            f'<p style="margin-top: 10px; margin-bottom: 2px;">'
+            f'<b style="color: {color};">{sender}:</b></p>'
+        )
+
         # Body
         formatted_text = self._format_text(text)
-        cursor.insertHtml(f'<div style="color: #a0c0ff; margin-left: 10px; margin-bottom: 5px;" id="streaming">{formatted_text}</div>')
-        
+        cursor.insertHtml(
+            f'<div style="color: #a0c0ff; margin-left: 10px; margin-bottom: 5px;" '
+            f'id="streaming">{formatted_text}</div>'
+        )
+
         self.setTextCursor(cursor)
-        self.files_cursor = cursor # Keep ref if needed
+        self.files_cursor = cursor  # Keep ref if needed
         self.ensureCursorVisible()
 
     def update_streaming_message(self, text):
         """Update the last message content (for streaming response)"""
         html = self.toHtml()
         formatted_text = self._format_text(text)
-        
+
         # Simple HTML string replacement for the 'streaming' id
         # This is faster/easier than DOM manipulation for simple updates
         if 'id="streaming">' in html:
@@ -52,7 +58,7 @@ class ChatWidget(QTextEdit):
                 if len(after) == 2:
                     new_html = before + formatted_text + '</div>' + after[1]
                     self.setHtml(new_html)
-                    
+
                     # Scroll to bottom
                     cursor = self.textCursor()
                     cursor.movePosition(cursor.MoveOperation.End)
