@@ -168,23 +168,43 @@ class Brain:
         """
         user_lower = user_input.lower()
 
-        if "search" in user_lower:
-            # G. Web Search
-            # Simple heuristic: "search <query>"
-            import re
-            match = re.search(r"(search|google)\s+(.+)", user_input, re.IGNORECASE)
-            if match:
-                query = match.group(2).strip()
+        # G. Web Search (More Flexible)
+        import re
+        # Heuristic: explicit "search" OR question words
+        search_triggers = r"^(search|google|find)\b|^(what|where|who|how|when)\s+is\b|^(tell me about)\b"
+        if re.search(search_triggers, user_lower):
+            # Extract query: remove "search", "google", etc if present, otherwise use full string
+            query = user_input
+            match_explicit = re.search(r"^(search|google|find)\s+(.+)", user_input, re.IGNORECASE)
+            if match_explicit:
+                query = match_explicit.group(2).strip()
+            # If question, use full string as query
+            
+            if len(query) > 3: # Avoid accidental Matches
                 if update_callback: update_callback(f"[Searching Web: {query}]...")
                 try:
                     return google_search(query)
                 except Exception as e:
                     return f"Search Error: {e}"
 
-        # A. Shell Execution
+        # A. Shell Execution (More Flexible)
+        # Direct commands: whoami, ls, pwd, date
+        direct_cmds = ["whoami", "ls", "dir", "pwd", "date", "ipconfig"]
+        cleaned_input = user_input.strip()
+        if cleaned_input.lower() in direct_cmds:
+             cmd = cleaned_input
+             if update_callback: update_callback(f"[Executing: {cmd}]...")
+             try:
+                 from src.api.routes.shell import SafetyGuard
+                 import subprocess
+                 # SafetyGuard.check(cmd) # Basic cmds are safe
+                 res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+                 return f"Shell Result:\n{res.stdout}"
+             except Exception as e:
+                 return f"Shell Error: {e}"
+
         if "command" in user_lower or "exec" in user_lower or "run terminal" in user_lower:
-            import re
-            cmd_match = re.search(r"(run command|execute|exec)\s+(.+)", user_input, re.IGNORECASE)
+            cmd_match = re.search(r"(run command|execute|exec|run)\s+(.+)", user_input, re.IGNORECASE)
             if cmd_match:
                 cmd = cmd_match.group(2).strip()
                 if confirmation_callback:

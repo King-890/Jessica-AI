@@ -22,6 +22,8 @@ returns table (
   similarity float
 )
 language plpgsql
+security definer
+set search_path = public, pg_temp
 as $$
 begin
   return query
@@ -30,7 +32,7 @@ begin
     documents.content,
     documents.metadata,
     1 - (documents.embedding <=> query_embedding) as similarity
-  from documents
+  from public.documents
   where 1 - (documents.embedding <=> query_embedding) > match_threshold
   order by documents.embedding <=> query_embedding
   limit match_count;
