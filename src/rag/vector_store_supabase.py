@@ -76,6 +76,7 @@ class SupabaseVectorStore:
             print(f"Successfully added {len(records)} documents to Supabase.")
         except Exception as e:
             print(f"Error adding documents to Supabase: {e}")
+            raise e
 
     def search(self, query: str, top_k: int = 5) -> List[Tuple[Document, float]]:
         """Search for similar documents using valid RPC call"""
