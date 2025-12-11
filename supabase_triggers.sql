@@ -66,6 +66,30 @@ create trigger on_memory_added
 after insert on public.documents
 for each row execute procedure public.log_learning_event();
 
--- 7. (Optional) Trigger for Workflow - Notify backup (if pg_net enabled)
--- This is a placeholder for future cloud workflows.
+-- 7. Function: Log Storage Events (File Uploads)
+create or replace function public.log_storage_event()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+    -- Log when a file is uploaded to 'datasets' or 'models'
+    if new.bucket_id in ('datasets', 'models') then
+        insert into public.learning_logs (activity_type, details)
+        values (
+            'file_archived', 
+            jsonb_build_object('bucket', new.bucket_id, 'filename', new.name, 'size', new.metadata->>'size')
+        );
+    end if;
+    return new;
+end;
+$$;
+
+-- 8. Trigger: Watch for File Uploads
+drop trigger if exists on_file_uploaded on storage.objects;
+create trigger on_file_uploaded
+after insert on storage.objects
+for each row execute procedure public.log_storage_event();
+
+-- 9. (Optional) Workflow Placeholder
 -- create trigger on_memory_backup ... 
