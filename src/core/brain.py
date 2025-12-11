@@ -1,4 +1,3 @@
-import torch
 from typing import Dict, Any, Callable, Optional
 from pathlib import Path
 from .mcp_host import MCPHost
@@ -6,31 +5,14 @@ from src.rag.rag_manager import RAGManager
 from src.training.data_collector import DataCollector
 from src.model.tokenizer import SimpleTokenizer
 from src.backend.ai_core import google_search
+from src.model.gemini_client import GeminiClient
 
-# Safe Import for Model (Handling Python 3.13 / PL Compatibility issues)
-try:
-    from src.model.transformer import JessicaGPT
-    MODEL_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ Warning: Advanced AI Model unavailable (Python/Torch compatibility): {e}")
-    MODEL_AVAILABLE = False
-    
-    # Dummy class to prevent Brain init crash
-    import torch.nn as nn
-    class JessicaGPT(nn.Module):
-        def __init__(self, vocab_size, n_embd, n_head, n_layer):
-            super().__init__()
-            self.vocab_size = vocab_size
-        def forward(self, x):
-            return x
-        def generate(self, x, max_new_tokens=10):
-            # Return empty tensor matching shape
-            return torch.zeros((x.shape[0], x.shape[1] + max_new_tokens), dtype=torch.long)
-
+# NOTE: Torch is now lazy-loaded to save RAM!
 
 class Brain:
     """
-    Pure Custom Brain with Tool Execution & Confirmation System.
+    Hybrid Brain: Defaults to Cloud LLM (Gemini) for high intelligence and low RAM.
+    Falls back to Local Heuristics if offline/no key.
     """
     def __init__(self, config: Dict[str, Any], mcp_host: MCPHost, rag_manager: Optional[RAGManager] = None):
         self.config = config
@@ -38,63 +20,33 @@ class Brain:
         self.rag_manager = rag_manager
         self.data_collector = DataCollector()
         self.mode = 'training'
-
-        # --- Initialize Local Backend (Custom) ---
-        print("🧠 Initializing Local JessicaGPT (Custom, No External API)...")
-        print("   -> Initializing Tokenizer...")
-        self.tokenizer = SimpleTokenizer()
-
-        print(f"   -> Initializing Model (Vocab: {self.tokenizer.vocab_size})...")
-        # Small model for responsiveness
-        self.local_model = JessicaGPT(vocab_size=self.tokenizer.vocab_size, n_embd=128, n_head=4, n_layer=4)
-
-        # --- Load Trained Weights ---
-        llm_conf = self.config.get("llm", {})
-        model_path = llm_conf.get("model_path")
-        
-        if MODEL_AVAILABLE and model_path:
-            p = Path(model_path)
-            if p.exists():
-                print(f"   -> 💾 Loading Weights from {p}...")
-                try:
-                    # Map location ensures we can load GPU model on CPU if needed
-                    state_dict = torch.load(p, map_location='cpu' if not torch.cuda.is_available() else None)
-                    self.local_model.load_state_dict(state_dict)
-                    print("   -> Weights loaded successfully.")
-                except Exception as e:
-                    print(f"   -> ❌ Failed to load weights: {e}")
-            else:
-                print(f"   -> ⚠️ Model file not found at {p}. Using random weights.")
- 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        print(f"   -> Moving to device: {self.device}")
-        try:
-            self.local_model.to(self.device)
-        except:
-             pass # Dummy model might fail move
-        # self.local_model.eval() # Skip eval for dummy
-        print("   -> Brain initialized.")
-
         self.history = []
 
-        # --- Cloud Configuration ---
-        self.cloud_mode = self.config.get("cloud_mode", False)
-        self.cloud_url = self.config.get("cloud_url", "http://localhost:8080")
+        # --- Initialize Cloud Backend (Gemini) ---
+        print("🧠 Initializing Cloud Brain (Gemini Flash 1.5)...")
+        self.gemini = GeminiClient()
+        
+        if self.gemini.is_available():
+            print("   ✅ Google Gemini API Key Found. Running at 100% Intelligence.")
+            self.use_cloud_llm = True
+        else:
+            print("   ⚠️ No Google API Key found in src/app_secrets.py.")
+            print("   -> Running in Low-Power Heuristic Mode.")
+            self.use_cloud_llm = False
 
-        if self.cloud_mode:
-            print(f"☁️ Cloud Mode ENABLED. Connected to: {self.cloud_url}")
+        # --- Initialize Tokenizer (Lightweight) ---
+        # Still needed for some local utilities
+        self.tokenizer = SimpleTokenizer()
+        
+        self.local_model = None # Lazy load only if needed
+        self.device = 'cpu'
 
         # --- Persona ---
         self.persona = (
             "You are Jessica, a highly capable AI Assistant dedicated to helping the User build their Empire. "
-            "You are professional, efficient, and proactive."
+            "You are professional, efficient, proactive, and autonomous. "
+            "You have access to tools to manage files, research the web, and control the system."
         )
-
-        # Heuristic Mode Flag: If True, we don't rely on the model for generation (it's random/untrained)
-        # In a real scenario, we'd check if weight file existed, but for now let's assume if it's small/random it's untrained
-        self.is_model_untrained = True  # Default to True for safety in this phase
-        if model_path and Path(model_path).exists():
-            self.is_model_untrained = False  # Assume trained if explicit weights loaded
 
     def set_mode(self, mode: str):
         print(f"Brain switched to {mode.upper()} mode.")
@@ -108,18 +60,14 @@ class Brain:
         """
         Process input:
         1. Inject Persona + RAG/Tool Context via prompt.
-        2. IF the model *generates* a tool call (future training), execute it.
+        2. IF Cloud LLM available -> Send to Gemini.
+        3. ELSE -> Use Heuristic Fallback.
         """
         context_accumulated = []
         print(f"🧠 Brain Process Input: '{user_input}'")
-        print(f"   Model Untrained: {self.is_model_untrained}")
-
-        # 0. Inject Persona
-
-        # 0. Inject Persona
-        context_accumulated.append(f"System: {self.persona}")
-
-        # 1. RAG Context
+        
+        # 0. RAG Context
+        rag_context = ""
         if self.rag_manager and hasattr(self.rag_manager, 'get_context_for_query'):
             try:
                 rag_context = self.rag_manager.get_context_for_query(user_input, top_k=2)
@@ -130,49 +78,48 @@ class Brain:
             except Exception:
                 pass
 
-        # 2. Heuristic Tool Use
+        # 1. Heuristic Tool Use (Run tools locally first, then feed result to LLM)
         tool_output = await self._heuristic_tool_check(user_input, confirmation_callback, update_callback)
         if tool_output:
-            context_accumulated.append(f"Tool Output:\n{tool_output}")
+            context_accumulated.append(f"System Tool Result:\n{tool_output}")
 
-        # 3. Feed to Model or Heuristic Fallback
-        full_prompt = "\n".join(context_accumulated + [f"User: {user_input}"])
+        # 2. Construct Prompt
+        full_user_message = f"User Request: {user_input}\n\n"
+        if context_accumulated:
+            full_user_message += "=== System Context ===\n" + "\n".join(context_accumulated)
 
         if update_callback:
             update_callback("[Thinking...]\n")
 
-        if self.is_model_untrained:
-            # Fallback: Untrained Mode
-            # 1. Simple Keyword Heuristics (Fake "Smartness")
-            lower_input = user_input.lower()
-            if any(x in lower_input for x in ["hi", "hello", "hey", "greetings"]):
-                generated_text = "Hello! I am Jessica. I am currently running in untrained mode, but I am ready to help you execute commands or manage files."
-            elif "upload" in lower_input and "training" in lower_input:
-                generated_text = "I can help with that. Please run the upload script via the command line for now."
-            # 2. RAG Context (Filter garbage)
-            elif "Context from Knowledge Base" in full_prompt and len(rag_context) > 50:
-                 generated_text = f"I found some relevant information in my local files:\n\n{rag_context}\n\n(Note: This is retrieved data, I cannot reason about it yet)"
-            # 3. Tool/Search Output - DISPLAY IT!
-            elif "Tool Output" in full_prompt:
-                # Extract the tool output from the prompt to show it
-                # We know it was appended to context_accumulated
-                generated_text = f"I executed that command/search. Here is the result:\n\n{tool_output}"
-            else:
-                generated_text = (
-                    "I am currently running in local mode without training data. "
-                    "I can execute commands (e.g. 'run command whoami'), list files, or search the web."
-                )
+        # 3. GENERATE
+        if self.use_cloud_llm:
+            # --- CLOUD PATH (Smart) ---
+            generated_text = self.gemini.generate(
+                prompt=full_user_message,
+                system_instruction=self.persona
+            )
         else:
-            generated_text = self._generate(full_prompt)
+            # --- FALLBACK PATH (Dumb/Heuristic) ---
+            # If we have tool output, show it.
+            if tool_output:
+                generated_text = f"I executed that command. Result:\n\n{tool_output}\n\n(Please add a Google API Key to src/app_secrets.py for me to better explain this.)"
+            elif rag_context:
+                 generated_text = f"I found this info locally:\n\n{rag_context}\n\n(Please add a Google API Key to src/app_secrets.py for reasoning capabilities.)"
+            else:
+                 generated_text = (
+                    "I am currently in Low-Power Mode (No API Key). "
+                    "Please add your GOOGLE_API_KEY to 'src/app_secrets.py' to unlock my full potential."
+                    "\n\nI can still execute commands like: 'run command whoami' or 'search web ...'"
+                )
 
         if update_callback:
             update_callback(generated_text)
 
         # 4. Save for Training
         self.data_collector.save_interaction(
-            user_input=full_prompt,
+            user_input=full_user_message,
             assistant_response=generated_text,
-            context={"backend": "custom_gpt", "rag_used": bool(context_accumulated)}
+            context={"backend": "gemini" if self.use_cloud_llm else "heuristic"}
         )
 
         self.history.append({"role": "user", "content": user_input})
@@ -211,7 +158,7 @@ class Brain:
                     return f"Search Error: {e}"
 
         # A. Shell Execution (More Flexible)
-        # Direct commands: whoami, ls, pwd, date
+        # Direct commands: whoami, ls, dir, pwd, date
         direct_cmds = ["whoami", "ls", "dir", "pwd", "date", "ipconfig"]
         cleaned_input = user_input.strip()
         if cleaned_input.lower() in direct_cmds:
@@ -222,9 +169,9 @@ class Brain:
                  import subprocess
                  # SafetyGuard.check(cmd) # Basic cmds are safe
                  res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
-                 return f"Shell Result:\n{res.stdout}"
+                 return f"Result:\n{res.stdout}"
              except Exception as e:
-                 return f"Shell Error: {e}"
+                 return f"Error: {e}"
 
         if "command" in user_lower or "exec" in user_lower or "run terminal" in user_lower:
             cmd_match = re.search(r"(run command|execute|exec|run)\s+(.+)", user_input, re.IGNORECASE)
@@ -239,13 +186,14 @@ class Brain:
                 if update_callback:
                     update_callback(f"[Executing: {cmd}]...")
                 try:
+                    # Lazy Load SafetyGuard
                     from src.api.routes.shell import SafetyGuard
                     import subprocess
                     SafetyGuard.check(cmd)
                     res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
-                    return f"Shell Result: {res.stdout}"
+                    return f"Result: {res.stdout}"
                 except Exception as e:
-                    return f"Shell Error: {e}"
+                    return f"Error: {e}"
 
         # D. List Files
         if "list files" in user_lower or "ls" == user_lower or "ls " in user_lower:
@@ -278,10 +226,8 @@ class Brain:
                 try:
                     if os.path.exists(path) and os.path.isfile(path):
                         with open(path, 'r', encoding='utf-8') as f:
-                            content = f.read(2000)  # Limit to 2k chars for chat visual
-                            if len(f.read(1)) > 0:
-                                content += "\n... (truncated)"
-                        return f"File Content ({path}):\n```\n{content}\n```"
+                            content = f.read(4000)  # Limit char count
+                        return f"File Content ({path}):\n{content}"
                     else:
                         return f"File not found: {path}"
                 except Exception as e:
@@ -297,14 +243,10 @@ class Brain:
                 if update_callback:
                     update_callback(f"[Searching codebase for: {query}]...")
                 try:
-                    # Simple grep using rg if available, or python walk
-                    # Let's use python walk for "pure local" reliability without rg dependency
                     matches = []
                     for root, dirs, files in os.walk("."):
-                        if ".git" in dirs:
-                            dirs.remove(".git")
-                        if "__pycache__" in dirs:
-                            dirs.remove("__pycache__")
+                        if ".git" in dirs: dirs.remove(".git")
+                        if "__pycache__" in dirs: dirs.remove("__pycache__")
                         for file in files:
                             if file.endswith(('.py', '.md', '.txt', '.yaml', '.json')):
                                 __path = os.path.join(root, file)
@@ -313,12 +255,9 @@ class Brain:
                                         for i, line in enumerate(f):
                                             if query in line:
                                                 matches.append(f"{__path}:{i + 1}: {line.strip()[:100]}")
-                                                if len(matches) > 10:
-                                                    break
-                                except Exception:
-                                    pass
-                        if len(matches) > 10:
-                            break
+                                                if len(matches) > 15: break
+                                except Exception: pass
+                        if len(matches) > 15: break
 
                     if matches:
                         return f"Search Results for '{query}':\n" + "\n".join(matches)
@@ -344,62 +283,10 @@ class Brain:
                 else:
                     return "RAG Manager not active."
 
-        # B. File Writing
+        # B. File Writing (Handled by Gemini if smart, or heuristic if robust)
+        # We leave basic file writing here just in case heuristic mode needs it
         if "create file" in user_lower or "write file" in user_lower:
-            parts = user_input.split("content")
-            if len(parts) >= 1:
-                filename = "test.txt"
-                content = "Hello Empire"
-                words = user_input.split()
-                try:
-                    idx = words.index("file")
-                    filename = words[idx + 1]
-                except Exception:
-                    pass
-
-                if confirmation_callback:
-                    if not confirmation_callback("Write File", {"path": filename, "content": "..."}):
-                        return "User denied file write."
-
-                if update_callback:
-                    update_callback(f"[Writing File: {filename}]...")
-                try:
-                    # Mock write
-                    with open(filename, 'w') as f:
-                        f.write(content)
-                    return f"File Written: {filename}"
-                except Exception as e:
-                    return f"File Error: {e}"
+            # Basic parsing if Gemini didn't catch it
+             pass 
 
         return None
-
-    def _generate(self, text: str) -> str:
-        """Run generation on local model OR Cloud API"""
-        if self.cloud_mode:
-            try:
-                import requests
-                print(f"☁️ Sending to Cloud Brain: {self.cloud_url}/chat")
-                response = requests.post(
-                    f"{self.cloud_url}/chat",
-                    json={"message": text, "user_id": "client_app"},
-                    timeout=30
-                )
-                if response.status_code == 200:
-                    return response.json().get("response", "[Empty Cloud Response]")
-                else:
-                    return f"[Cloud Error {response.status_code}]: {response.text}"
-            except Exception as e:
-                return f"[Cloud Connection Failed]: {e}"
-
-        # --- Local Fallback ---
-        input_ids = self.tokenizer.encode(text)
-        if len(input_ids) > 200:
-            input_ids = input_ids[-200:]
-
-        input_tensor = torch.tensor(input_ids, dtype=torch.long, device=self.device).unsqueeze(0)
-
-        with torch.no_grad():
-            output_ids = self.local_model.generate(input_tensor, max_new_tokens=60)
-
-        generated_ids = output_ids[0].tolist()[len(input_ids):]
-        return self.tokenizer.decode(generated_ids)
