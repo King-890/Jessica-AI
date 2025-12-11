@@ -4,15 +4,15 @@ create schema if not exists extensions;
 -- Enable pgvector in the extensions schema
 create extension if not exists vector with schema extensions;
 
--- [RECOMMENDED BY JESSICA AI]
--- Enable pg_cron for scheduling autonomous background tasks (e.g. Daily Cleanup)
-create extension if not exists pg_cron with schema extensions;
+-- [OPTIONAL - Enable if your Supabase Plan supports them]
+-- Enable pg_cron (May require Pro plan or specific configuration)
+-- create extension if not exists pg_cron with schema extensions;
 
--- Enable Vault for secure API Key storage
-create extension if not exists vault with schema extensions;
+-- Enable Vault (May not be available on all instances)
+-- create extension if not exists vault with schema extensions;
 
--- Enable pg_net for making HTTP requests from the database (Webhooks)
-create extension if not exists pg_net with schema extensions;
+-- Enable pg_net (May not be available/enabled)
+-- create extension if not exists pg_net with schema extensions;
 
 -- Create a table to store your documents
 create table if not exists public.documents (

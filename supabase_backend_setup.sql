@@ -17,5 +17,8 @@ create table if not exists settings (
 alter table tokens enable row level security;
 alter table settings enable row level security;
 
+drop policy if exists "Anon Access Tokens" on tokens;
 create policy "Anon Access Tokens" on tokens for all using (true) with check (true);
+
+drop policy if exists "Anon Access Settings" on settings;
 create policy "Anon Access Settings" on settings for all using (true) with check (true);
