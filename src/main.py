@@ -88,22 +88,27 @@ def main():
     # RAG Manager - Enabled for Training/RAG flow
     # RAG Manager - Cloud Sync & Training
     print("\nInitializing RAG system (Cloud Mode)...")
+    # Initialize quickly (no training yet)
     rag_manager = RAGManager(
         index_dir=project_root / ".jessica" / "rag_index",
-        enable_training=True  # ENABLED: Scan for new files
+        enable_training=False 
     )
     
-    # Sync with Cloud
-    print("☁️ Syncing training data from Supabase...")
-    rag_manager.download_training_data()
+    # Background Thread for Heavy RAG Operations (Download & Index)
+    def run_rag_background_tasks():
+        print("☁️ [Background] Syncing training data from Supabase...")
+        rag_manager.download_training_data()
+        
+        print("📚 [Background] Indexing training data...")
+        # We manually call index_training_data since we disabled it in __init__
+        rag_manager.index_training_data()
+        print("✅ [Background] RAG System Fully Ready.")
+
+    rag_thread = threading.Thread(target=run_rag_background_tasks, daemon=True)
+    rag_thread.start()
     
-    # Check if indexing is needed
-    try:
-        stats = rag_manager.get_stats()
-    except:
-        pass
-    
-    print(f"RAG system ready (Cloud Connected)\n")
+    print(f"RAG system initializing in background (UI Ready)\n")
+    needs_indexing = False
     
     # Enable Continuous Learning Background Loop
     try:
