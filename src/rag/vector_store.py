@@ -54,7 +54,7 @@ class VectorStore:
                 has_supabase = True
             else:
                 try:
-                    from src import secrets
+                    from src import app_secrets as secrets
                     if secrets.SUPABASE_URL and (secrets.SUPABASE_ANON_KEY or secrets.SUPABASE_SERVICE_KEY):
                         has_supabase = True
                 except ImportError:

@@ -4,9 +4,28 @@ from pathlib import Path
 from .mcp_host import MCPHost
 from src.rag.rag_manager import RAGManager
 from src.training.data_collector import DataCollector
-from src.model.transformer import JessicaGPT
 from src.model.tokenizer import SimpleTokenizer
 from src.backend.ai_core import google_search
+
+# Safe Import for Model (Handling Python 3.13 / PL Compatibility issues)
+try:
+    from src.model.transformer import JessicaGPT
+    MODEL_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Warning: Advanced AI Model unavailable (Python/Torch compatibility): {e}")
+    MODEL_AVAILABLE = False
+    
+    # Dummy class to prevent Brain init crash
+    import torch.nn as nn
+    class JessicaGPT(nn.Module):
+        def __init__(self, vocab_size, n_embd, n_head, n_layer):
+            super().__init__()
+            self.vocab_size = vocab_size
+        def forward(self, x):
+            return x
+        def generate(self, x, max_new_tokens=10):
+            # Return empty tensor matching shape
+            return torch.zeros((x.shape[0], x.shape[1] + max_new_tokens), dtype=torch.long)
 
 
 class Brain:
@@ -32,7 +51,8 @@ class Brain:
         # --- Load Trained Weights ---
         llm_conf = self.config.get("llm", {})
         model_path = llm_conf.get("model_path")
-        if model_path:
+        
+        if MODEL_AVAILABLE and model_path:
             p = Path(model_path)
             if p.exists():
                 print(f"   -> 💾 Loading Weights from {p}...")
@@ -45,11 +65,14 @@ class Brain:
                     print(f"   -> ❌ Failed to load weights: {e}")
             else:
                 print(f"   -> ⚠️ Model file not found at {p}. Using random weights.")
-
+ 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"   -> Moving to device: {self.device}")
-        self.local_model.to(self.device)
-        self.local_model.eval()
+        try:
+            self.local_model.to(self.device)
+        except:
+             pass # Dummy model might fail move
+        # self.local_model.eval() # Skip eval for dummy
         print("   -> Brain initialized.")
 
         self.history = []

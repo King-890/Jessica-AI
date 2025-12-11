@@ -28,7 +28,7 @@ class SupabaseVectorStore:
 
         if not self.url or not self.key:
             try:
-                from src.secrets import SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY
+                from src.app_secrets import SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY
                 self.url = self.url or SUPABASE_URL
                 self.key = self.key or SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
             except ImportError:
