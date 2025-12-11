@@ -26,6 +26,14 @@ class SupabaseVectorStore:
         self.url = os.getenv("SUPABASE_URL")
         self.key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
 
+        if not self.url or not self.key:
+            try:
+                from src.secrets import SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY
+                self.url = self.url or SUPABASE_URL
+                self.key = self.key or SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY
+            except ImportError:
+                pass
+
         if not ML_AVAILABLE:
             print("Supabase/ML libs missing.")
             self.model = None

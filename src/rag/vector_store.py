@@ -47,8 +47,20 @@ class VectorStore:
         self.backend = None
         self.use_supabase = False
 
-        # Check for Supabase config
-        if SUPABASE_AVAILABLE and os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"):
+        # Check for Supabase config (Env or Secrets)
+        has_supabase = False
+        if SUPABASE_AVAILABLE:
+            if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_ANON_KEY"):
+                has_supabase = True
+            else:
+                try:
+                    from src import secrets
+                    if secrets.SUPABASE_URL and (secrets.SUPABASE_ANON_KEY or secrets.SUPABASE_SERVICE_KEY):
+                        has_supabase = True
+                except ImportError:
+                     pass
+
+        if has_supabase:
             try:
                 print("Initializing Supabase Vector Store...")
                 self.backend = SupabaseVectorStore(model_name=model_name)
