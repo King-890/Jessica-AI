@@ -22,30 +22,36 @@ async function runTest() {
     // For simplicity, we'll assume a test user exists or just use the service role to act as a user
     // But enqueue-inference requires a real JWT usually.
     // Let's sign up a random test user
-    const email = `testuser_${Date.now()}@example.com`;
+    const email = `testuser_${Date.now()}@gmail.com`;
     const password = 'testpassword123';
 
-    console.log(`Creating test user: ${email}`);
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    console.log(`Creating test user (admin): ${email}`);
+    // Use admin to create confirmed user
+    const { data: userData, error: createError } = await supabase.auth.admin.createUser({
         email,
         password,
+        email_confirm: true
     });
 
-    if (authError) {
-        console.error("Auth Error:", authError);
+    if (createError) {
+        console.error("Create User Error:", createError);
+        return;
+    }
+
+    console.log("User created. Signing in to get token...");
+    const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+    });
+
+    if (signInError) {
+        console.error("Sign In Error:", signInError);
         return;
     }
 
     const userId = authData.user?.id;
     const token = authData.session?.access_token;
 
-    if (!token) {
-        console.log("No session returned (confirm email might be on). Using Service Role for operations instead of JWT for now if possible, but Edge Function requires JWT.");
-        // If email confirmation is on, this fails. 
-        // For testing, we might need a user that is already confirmed.
-        console.log("Skipping Inference Test if no token available.");
-        return;
-    }
 
     console.log("User authenticated.");
 
@@ -79,7 +85,7 @@ async function runTest() {
     console.log(`Polling job ${jobId}...`);
     let status = 'queued';
     let attempts = 0;
-    while (status !== 'completed' && status !== 'failed' && attempts < 10) {
+    while (status !== 'completed' && status !== 'failed' && attempts < 90) {
         await new Promise(r => setTimeout(r, 1000));
         const { data: job } = await supabase.from('inference_jobs').select('status').eq('id', jobId).single();
         status = job.status;
