@@ -41,15 +41,41 @@ class Brain:
         self.local_model = None # Lazy load only if needed
         self.device = 'cpu'
 
-        # --- Persona ---
-        self.persona = (
-            "You are Jessica, a highly capable AI Assistant dedicated to helping the User build their Empire. "
-            "You are professional, efficient, proactive, and autonomous. "
-            "You have access to tools to manage files, research the web, and control the system."
-        )
+        # --- Persona System ---
+        self.personas = {
+            "default": (
+                "You are Jessica, a highly capable AI Assistant dedicated to helping the User build their Empire. "
+                "You are professional, efficient, proactive, and autonomous. "
+                "You have access to tools to manage files, research the web, and control the system."
+            ),
+            "ide": (
+                "You are Jessica (IDE Mode), an expert Senior Software Engineer and Architect. "
+                "Focus strictly on Code Quality, Architecture, and Implementation. "
+                "Provide concise, copy-pasteable code blocks. Audit all code for bugs and security."
+            ),
+            "friend": (
+                "You are Jessica (Friend Mode), a supportive and casual companion. "
+                "Be empathetic, use casual language, and focus on the user's well-being and motivation. "
+                "You are still helpful, but the tone is warm and personal."
+            ),
+            "helper": (
+                "You are Jessica (Helper Mode), a dedicated executive assistant. "
+                "Focus on organizing tasks, managing schedules, and executing commands efficiently. "
+                "Be extremely brief and action-oriented."
+            )
+        }
+        self.current_persona = "default"
+        self.persona = self.personas["default"]
 
-    def set_mode(self, mode: str):
-        print(f"Brain switched to {mode.upper()} mode.")
+    def set_persona(self, role: str) -> bool:
+        """Transform the AI into a specific role."""
+        role_key = role.lower().strip()
+        if role_key in self.personas:
+            self.current_persona = role_key
+            self.persona = self.personas[role_key]
+            print(f"🦋 Brain transformed into: {role_key.upper()}")
+            return True
+        return False
 
     async def process_input(
         self,
@@ -137,6 +163,19 @@ class Brain:
         Temporary logic to trigger MCP tools based on keywords.
         """
         user_lower = user_input.lower()
+
+        # H. Persona / Transform Trigger
+        import re
+        transform_match = re.search(r"(become|transform into|switch to) (a |an )?(\w+)", user_input, re.IGNORECASE)
+        if transform_match:
+            target_role = transform_match.group(3).lower()
+            # Handle "friend", "ide", "helper"
+            if target_role in self.personas:
+                self.set_persona(target_role)
+                return f"Transformation Complete. I am now in {target_role.upper()} Mode.\n{self.personas[target_role]}"
+            elif target_role == "default" or target_role == "normal":
+                self.set_persona("default")
+                return "Restored to Default Mode."
 
         # G. Web Search (More Flexible)
         import re

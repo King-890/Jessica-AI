@@ -1,0 +1,36 @@
+name: Deploy to Supabase
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Supabase Project
+        run: supabase link --project-ref $PROJECT_ID
+
+      - name: Deploy Database Migrations
+        run: supabase db push
+
+      - name: Deploy Edge Functions
+        run: |
+          supabase functions deploy embed-generator
+          supabase functions deploy enqueue-inference
+          supabase functions deploy run-inference-worker
+          supabase functions deploy auth-proxy

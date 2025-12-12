@@ -65,7 +65,7 @@ class SupabaseVectorStore:
         records = []
         for i, doc in enumerate(documents):
             records.append({
-                "content": doc.content,
+                "content": doc.content.replace('\x00', ''),  # Sanitize Null Bytes for Postgres
                 "metadata": doc.metadata,
                 "embedding": embeddings[i].tolist()
             })
