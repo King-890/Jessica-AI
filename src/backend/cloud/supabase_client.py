@@ -7,6 +7,9 @@ except Exception:
     create_client = None
     Client = object  # type: ignore
 
+# Supabase Cloud Client for Jessica AI
+
+
 
 _client: Optional[Client] = None
 
