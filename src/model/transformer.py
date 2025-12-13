@@ -1,38 +1,52 @@
+
+import math
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import pytorch_lightning as pl
+from torch.nn import functional as F
 
-class Head(nn.Module):
-    """One head of self-attention"""
-    def __init__(self, head_size, n_embd, block_size, dropout):
+class JessicaConfig:
+    def __init__(self, vocab_size=50257, n_embd=384, n_head=6, n_layer=6, block_size=256, dropout=0.2):
+        self.vocab_size = vocab_size
+        self.n_embd = n_embd          # Embedding dimension (Brain size)
+        self.n_head = n_head          # Number of attention heads (Parallel thoughts)
+        self.n_layer = n_layer        # Number of layers (Depth of reasoning)
+        self.block_size = block_size  # Context window (Memory span)
+        self.dropout = dropout
+
+class StartHead(nn.Module):
+    """ One head of self-attention """
+    def __init__(self, config):
         super().__init__()
-        self.key = nn.Linear(n_embd, head_size, bias=False)
-        self.query = nn.Linear(n_embd, head_size, bias=False)
-        self.value = nn.Linear(n_embd, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-        self.dropout = nn.Dropout(dropout)
+        self.key = nn.Linear(config.n_embd, config.n_embd // config.n_head, bias=False)
+        self.query = nn.Linear(config.n_embd, config.n_embd // config.n_head, bias=False)
+        self.value = nn.Linear(config.n_embd, config.n_embd // config.n_head, bias=False)
+        self.register_buffer('tril', torch.tril(torch.ones(config.block_size, config.block_size)))
+        self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
         B, T, C = x.shape
-        k = self.key(x)   # (B, T, head_size)
-        q = self.query(x) # (B, T, head_size)
-        # Compute attention scores
-        wei = q @ k.transpose(-2, -1) * C**-0.5 # (B, T, T)
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
+        k = self.key(x)   # (B, T, 16)
+        q = self.query(x) # (B, T, 16)
+        
+        # Compute attention scores ("affinities")
+        wei = q @ k.transpose(-2, -1) * (C**-0.5) # (B, T, 16) @ (B, 16, T) -> (B, T, T)
+        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf')) # Decoder mask
         wei = F.softmax(wei, dim=-1)
         wei = self.dropout(wei)
-        v = self.value(x) # (B, T, head_size)
-        out = wei @ v # (B, T, head_size)
+        
+        # Perform the weighted aggregation of the values
+        v = self.value(x)
+        out = wei @ v
         return out
 
 class MultiHeadAttention(nn.Module):
-    """Multiple heads of self-attention in parallel"""
-    def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
+    """ Multiple heads of self-attention in parallel """
+    def __init__(self, config):
         super().__init__()
-        self.heads = nn.ModuleList([Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
-        self.proj = nn.Linear(n_embd, n_embd)
-        self.dropout = nn.Dropout(dropout)
+        head_size = config.n_embd // config.n_head
+        self.heads = nn.ModuleList([StartHead(config) for _ in range(config.n_head)])
+        self.proj = nn.Linear(config.n_embd, config.n_embd)
+        self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
         out = torch.cat([h(x) for h in self.heads], dim=-1)
@@ -40,61 +54,58 @@ class MultiHeadAttention(nn.Module):
         return out
 
 class FeedForward(nn.Module):
-    """Simple linear layer followed by non-linearity"""
-    def __init__(self, n_embd, dropout):
+    """ A simple linear layer followed by a non-linearity """
+    def __init__(self, config):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
+            nn.Linear(config.n_embd, 4 * config.n_embd),
             nn.ReLU(),
-            nn.Linear(4 * n_embd, n_embd),
-            nn.Dropout(dropout),
+            nn.Linear(4 * config.n_embd, config.n_embd),
+            nn.Dropout(config.dropout),
         )
 
     def forward(self, x):
         return self.net(x)
 
 class Block(nn.Module):
-    """Transformer block: communication followed by computation"""
-    def __init__(self, n_embd, n_head, block_size, dropout):
+    """ Transformer block: communication followed by computation """
+    def __init__(self, config):
         super().__init__()
-        head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
-        self.ffwd = FeedForward(n_embd, dropout)
-        self.ln1 = nn.LayerNorm(n_embd)
-        self.ln2 = nn.LayerNorm(n_embd)
+        self.sa = MultiHeadAttention(config)
+        self.ffwd = FeedForward(config)
+        self.ln1 = nn.LayerNorm(config.n_embd)
+        self.ln2 = nn.LayerNorm(config.n_embd)
 
     def forward(self, x):
         x = x + self.sa(self.ln1(x))
         x = x + self.ffwd(self.ln2(x))
         return x
 
-class JessicaGPT(pl.LightningModule):
+class JessicaModel(nn.Module):
+    """ 
+    The Jessica-Zero Transformer Model.
+    Based on GPT architecture.
     """
-    Custom GPT Language Model tailored for Jessica AI.
-    Building from scratch!
-    """
-    def __init__(self, vocab_size, n_embd=384, n_head=6, n_layer=6, block_size=256, dropout=0.2, lr=3e-4):
+    def __init__(self, config):
         super().__init__()
-        self.save_hyperparameters()
-        self.block_size = block_size
-        self.lr = lr
-        
-        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
-        self.ln_f = nn.LayerNorm(n_embd)  # final layer norm
-        self.lm_head = nn.Linear(n_embd, vocab_size)
+        self.config = config
+        # Each token directly reads off the logits for the next token from a lookup table
+        self.token_embedding_table = nn.Embedding(config.vocab_size, config.n_embd)
+        self.position_embedding_table = nn.Embedding(config.block_size, config.n_embd)
+        self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
+        self.ln_f = nn.LayerNorm(config.n_embd) # Final layer norm
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size)
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
-        
+
         # idx and targets are both (B,T) tensor of integers
-        tok_emb = self.token_embedding_table(idx)  # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device))  # (T,C)
-        x = tok_emb + pos_emb  # (B,T,C)
-        x = self.blocks(x)  # (B,T,C)
-        x = self.ln_f(x)  # (B,T,C)
-        logits = self.lm_head(x)  # (B,T,vocab_size)
+        tok_emb = self.token_embedding_table(idx) # (B,T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T,C)
+        x = tok_emb + pos_emb # (B,T,C)
+        x = self.blocks(x) # (B,T,C)
+        x = self.ln_f(x) # (B,T,C)
+        logits = self.lm_head(x) # (B,T,vocab_size)
 
         if targets is None:
             loss = None
@@ -106,30 +117,19 @@ class JessicaGPT(pl.LightningModule):
 
         return logits, loss
 
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits, loss = self(x, y)
-        # self.log('train_loss', loss, prog_bar=True) # REMOVED: Wrapper handles logging
-        return loss
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
-        return optimizer
-
-    @torch.no_grad()
     def generate(self, idx, max_new_tokens):
-        """Generate new tokens from context"""
+        # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
-            # Crop context if needed
-            idx_cond = idx[:, -self.block_size:]
+            # Crop context to block_size if needed
+            idx_cond = idx[:, -self.config.block_size:]
             # Get predictions
             logits, loss = self(idx_cond)
-            # Focus on last time step
-            logits = logits[:, -1, :]  # (B, C)
-            # Apply softmax
-            probs = F.softmax(logits, dim=-1)  # (B, C)
-            # Sample from distribution
-            idx_next = torch.multinomial(probs, num_samples=1)  # (B, 1)
-            # Append to sequence
-            idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
+            # Focus only on the last time step
+            logits = logits[:, -1, :] # (B, C)
+            # Apply softmax to get probabilities
+            probs = F.softmax(logits, dim=-1) # (B, C)
+            # Sample from the distribution
+            idx_next = torch.multinomial(probs, num_samples=1) # (B, 1)
+            # Append sampled index to the running sequence
+            idx = torch.cat((idx, idx_next), dim=1) # (B, T+1)
         return idx
