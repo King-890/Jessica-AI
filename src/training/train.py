@@ -1,5 +1,9 @@
 
 import os
+import sys
+# Fix Python Path to allow importing 'src' from root
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import time
 import math
 import torch
