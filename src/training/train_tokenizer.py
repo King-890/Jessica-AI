@@ -2,6 +2,8 @@
 import os
 import json
 from collections import Counter
+# BPE Tokenizer Training Script (Pure Python)
+
 
 # --- Configuration ---
 CORPUS_FILE = "training_data/corpus.txt"
