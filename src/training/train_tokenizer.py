@@ -1,11 +1,6 @@
 
-"""
-Train a Byte-Pair Encoding (BPE) Tokenizer on the corpus.
-Based on minBPE (Andrej Karpathy).
-"""
 import os
 import json
-import regex as re
 from collections import Counter
 
 # --- Configuration ---
@@ -13,8 +8,6 @@ CORPUS_FILE = "training_data/corpus.txt"
 VOCAB_SIZE = 4096 # Target vocabulary size (Small for testing, can go to 32k+)
 MODEL_NAME = "jessica_tokenizer"
 
-# GPT-4 split pattern
-PAT = re.compile(r"""'(?i:[sdmt]|ll|ve|re)|[^\r\n\p{L}\p{N}]?+\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]++[\r\n]*|\s*[\r\n]|\s+(?!\S)|\s+""")
 
 def get_stats(ids):
     counts = {}
@@ -49,11 +42,8 @@ def train_tokenizer():
     print(f"Corpus size: {len(text)} chars / {len(text.encode('utf-8'))} bytes")
 
     # 2. Initial encoding (UTF-8 bytes)
-    tokens = [list(map(int, t.encode('utf-8'))) for t in re.findall(PAT, text)]
-    # Flatten for stats (approximate, usually we preserve word boundaries but for simple BPE global stats work ok)
-    # Actually, proper BPE respects regex boundaries. Let's do a simple global stream for "Sovereign AI v1"
-    # To keep it simple and robust:
-    ids = list(text.encode("utf-8")) # Raw byte stream BPE
+    # Simple byte-level BPE (Robust)
+    ids = list(text.encode("utf-8")) 
     print(f"Initial tokens (bytes): {len(ids)}")
 
     # 3. Training Loop
