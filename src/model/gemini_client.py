@@ -7,7 +7,7 @@ class GeminiClient:
     Lightweight client for Google Gemini API (REST).
     No heavy dependencies.
     """
-    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
 
     def __init__(self, api_key: str = None):
         self.api_key = api_key
