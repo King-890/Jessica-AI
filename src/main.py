@@ -2,6 +2,11 @@ import sys
 import os
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Load .env explicitly for all components using os.getenv
+from dotenv import load_dotenv
+load_dotenv()
+
 import asyncio
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication

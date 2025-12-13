@@ -27,11 +27,11 @@ class Brain:
         self.gemini = GeminiClient()
         
         if self.gemini.is_available():
-            print("   ✅ Google Gemini API Key Found. Running at 100% Intelligence.")
+            print("   ✅ Google Gemini API Key Found. Intelligence: Online.")
             self.use_cloud_llm = True
         else:
-            print("   ⚠️ No Google API Key found in src/app_secrets.py.")
-            print("   -> Running in Low-Power Heuristic Mode.")
+            print("   ⚠️ No Google API Key found in .env (GOOGLE_API_KEY or GOOGLE_CSE_API_KEY).")
+            print("   -> Running in Offline Heuristic Mode.")
             self.use_cloud_llm = False
 
         # --- Initialize Tokenizer (Lightweight) ---
@@ -128,13 +128,13 @@ class Brain:
             # --- FALLBACK PATH (Dumb/Heuristic) ---
             # If we have tool output, show it.
             if tool_output:
-                generated_text = f"I executed that command. Result:\n\n{tool_output}\n\n(Please add a Google API Key to src/app_secrets.py for me to better explain this.)"
+                generated_text = f"I executed that command locally. Result:\n\n{tool_output}\n\n(Note: Cloud Brain is offline/unconfigured. Check .env if this is unexpected.)"
             elif rag_context:
-                 generated_text = f"I found this info locally:\n\n{rag_context}\n\n(Please add a Google API Key to src/app_secrets.py for reasoning capabilities.)"
+                 generated_text = f"I found this info locally:\n\n{rag_context}\n\n(Note: Cloud Brain is offline/unconfigured. Check .env if this is unexpected.)"
             else:
                  generated_text = (
-                    "I am currently in Low-Power Mode (No API Key). "
-                    "Please add your GOOGLE_API_KEY to 'src/app_secrets.py' to unlock my full potential."
+                    "I am currently in Offline Mode (Cloud Brain Unreachable). "
+                    "For full intelligence, ensure your Google API Key is set in '.env' or GitHub Secrets."
                     "\n\nI can still execute commands like: 'run command whoami' or 'search web ...'"
                 )
 

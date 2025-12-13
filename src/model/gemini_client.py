@@ -11,17 +11,14 @@ class GeminiClient:
 
     def __init__(self, api_key: str = None):
         self.api_key = api_key
-        # Auto-load from secrets if not provided
-        if not self.api_key:
-            try:
-                from src.app_secrets import GOOGLE_API_KEY
-                self.api_key = GOOGLE_API_KEY
-            except ImportError:
-                pass
         
-        # Check Env Vars as backup
+        # Check Env Vars (Prioritize specific Gemini key, fallback to CSE key if shared)
         if not self.api_key:
             self.api_key = os.getenv("GOOGLE_API_KEY")
+        
+        if not self.api_key:
+            # User might be trying to use one key for both Search and AI
+            self.api_key = os.getenv("GOOGLE_CSE_API_KEY")
 
     def is_available(self) -> bool:
         return bool(self.api_key and len(self.api_key) > 10)
@@ -31,7 +28,7 @@ class GeminiClient:
         Generate text using Gemini Flash 1.5
         """
         if not self.api_key:
-            return "Error: Google API Key is missing. Please add it to src/app_secrets.py"
+            return "Error: Google API Key is missing. Please add GOOGLE_API_KEY to your .env file."
 
         url = f"{self.BASE_URL}?key={self.api_key}"
         
