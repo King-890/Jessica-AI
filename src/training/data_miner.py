@@ -4,50 +4,14 @@ import time
 import requests
 import re
 from bs4 import BeautifulSoup
-import os
-import time
-import requests
-import re
-from bs4 import BeautifulSoup
-# from src.backend.ai_core import google_search # Remove dependency
+from datetime import datetime
 
-# Standalone Google Search simple implementation
-def google_search(query):
-    try:
-        from serpapi import GoogleSearch
-        # Note: This requires serpapi pkg or we use the duckduckgo fallback if simple
-        # For this Miner, let's use the SerpApi library compatible logic or basic DDG
-        pass
-    except:
-        pass
-    # FALLBACK: Use a robust free search or just the SerpAPI standard if installed
-    # Since we installed 'google-search-results', we use that.
-    try:
-        from serpapi import GoogleSearch
-        api_key = os.getenv("GOOGLE_CSE_API_KEY") # Reuse Search Key or new one
-        # If no key, we might fail. Let's assume user has key or use a public scrape hack.
-        # Actually, let's just use the serpapi logic properly.
-        # But wait, the user installed 'google-search-results'.
-        if not api_key: return "No API Key"
-        
-        params = {
-            "q": query,
-            "api_key": api_key,
-            "engine": "google"
-        }
-        search = GoogleSearch(params)
-        results = search.get_dict()
-        # Parse organic results
-        summary = ""
-        if "organic_results" in results:
-            for r in results["organic_results"]:
-                summary += r.get("link", "") + " "
-        return summary
-    except Exception as e:
-        return str(e)
-
-# Target Corpus Size: 100MB
+# --- CONFIG ---
 CORPUS_FILE = "training_data/corpus.txt"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+BUCKET_NAME = "datasets"
+
 TOPICS = [
     "python programming advanced patterns",
     "rust lang memory safety guide",
@@ -68,15 +32,27 @@ class DataMiner:
         self.session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         })
+        self.chars_harvested = 0
+        self.last_sync = time.time()
 
     def ensure_dir(self):
         if not os.path.exists("training_data"):
             os.makedirs("training_data")
 
-    def clean_text(self, text):
-        # Remove empty lines and excessive whitespace
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        return "\n".join(lines)
+    def search_ddg(self, query):
+        """Use DuckDuckGo (No API Key required)"""
+        try:
+            from duckduckgo_search import DDGS
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=5))
+                urls = [r['href'] for r in results]
+                return urls
+        except ImportError:
+            print("[Error] duckduckgo-search not installed. Run: pip install duckduckgo-search")
+            return []
+        except Exception as e:
+            print(f"[Search Error]: {e}")
+            return []
 
     def crawl(self, url):
         try:
@@ -91,10 +67,45 @@ class DataMiner:
                 s.decompose()
             
             text = soup.get_text(separator=' ')
-            return self.clean_text(text)
+            # Clean text
+            lines = [line.strip() for line in text.splitlines() if line.strip()]
+            return "\n".join(lines)
         except Exception as e:
-            print(f"      [Error]: {e}")
+            # print(f"      [Error]: {e}")
             return ""
+
+    def sync_to_cloud(self):
+        """Upload current corpus to Supabase"""
+        if not (SUPABASE_URL and SUPABASE_KEY):
+            print("   [Cloud] Skpping sync (No Supabase Keys in env)")
+            return
+
+        print("   ☁️ Syncing corpus to Supabase...")
+        try:
+            file_path = CORPUS_FILE
+            file_name = f"auto_learning/corpus_backup_{int(time.time())}.txt"
+            
+            # Read file
+            with open(file_path, 'rb') as f:
+                file_data = f.read()
+            
+            # Simple REST Upload
+            url = f"{SUPABASE_URL}/storage/v1/object/{BUCKET_NAME}/{file_name}"
+            headers = {
+                "Authorization": f"Bearer {SUPABASE_KEY}",
+                "apikey": SUPABASE_KEY,
+                "Content-Type": "text/plain"
+            }
+            # Try to upload
+            resp = requests.post(url, headers=headers, data=file_data)
+            
+            if resp.status_code in [200, 201]:
+                print("   ✅ Backup Successful!")
+            else:
+                print(f"   ⚠️ Backup Failed: {resp.text}")
+                
+        except Exception as e:
+            print(f"   [Sync Error]: {e}")
 
     def mine(self):
         print(f"🚀 Sovereign Data Miner Started. Target: {CORPUS_FILE}")
@@ -102,31 +113,34 @@ class DataMiner:
         while True:
             for topic in TOPICS:
                 print(f"\n🔍 Searching Topic: {topic}")
-                try:
-                    # 1. Get Seeds from Google
-                    summary = google_search(f"{topic} documentation tutorial")
-                    urls = re.findall(r'(https?://[^\s\)]+)', summary)
-                    
-                    # 2. Extract unique URLs
-                    unique_urls = list(set(urls))[:5] # Take top 5
-                    
-                    for url in unique_urls:
-                        content = self.crawl(url)
-                        if len(content) > 1000: # Only keep substantial articles
-                            with open(CORPUS_FILE, "a", encoding="utf-8") as f:
-                                # Add delimiter for distinct documents
-                                f.write(f"\n\n<|endoftext|>\n\n") 
-                                f.write(content)
-                            
-                            size_mb = os.path.getsize(CORPUS_FILE) / (1024 * 1024)
-                            print(f"      + Added {len(content)} chars. Corpus Size: {size_mb:.2f} MB")
-                        
-                        time.sleep(1) # Be polite
-                except Exception as e:
-                    print(f"Critical Mining Error: {e}")
+                urls = self.search_ddg(topic)
                 
-            print("Cycle check complete. Sleeping 10s...")
-            time.sleep(10)
+                if not urls:
+                    print("   - No results found (Check internet/modules).")
+                    time.sleep(2)
+                    continue
+
+                for url in urls:
+                    content = self.crawl(url)
+                    if len(content) > 2000: # High quality filter
+                        with open(CORPUS_FILE, "a", encoding="utf-8") as f:
+                            f.write(f"\n\n<|endoftext|>\n\n") 
+                            f.write(content)
+                            f.write(f"\n\n--- Source: {url} ---\n\n")
+                        
+                        self.chars_harvested += len(content)
+                        size_mb = os.path.getsize(CORPUS_FILE) / (1024 * 1024)
+                        print(f"      + Added {len(content)} chars. Corpus Size: {size_mb:.2f} MB")
+                    
+                    time.sleep(1) # Be polite
+                
+                # Check for sync
+                if time.time() - self.last_sync > 300: # Every 5 mins
+                    self.sync_to_cloud()
+                    self.last_sync = time.time()
+                
+            print("Cycle check complete. Sleeping 5s...")
+            time.sleep(5)
 
 if __name__ == "__main__":
     miner = DataMiner()
