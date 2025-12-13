@@ -1,11 +1,14 @@
 import sys
 import os
 # Add project root to sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
 
 # Load .env explicitly for all components using os.getenv
 from dotenv import load_dotenv
-load_dotenv()
+env_path = os.path.join(root_dir, ".env")
+print(f"Loading environment from: {env_path}")
+load_dotenv(env_path)
 
 import asyncio
 from pathlib import Path
