@@ -1,6 +1,6 @@
-
 import os
 import sys
+import json
 # Fix Python Path to allow importing 'src' from root
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
@@ -27,6 +27,25 @@ n_layer = 4
 
 print(f"Using device: {device}")
 
+# --- BPE Tokenizer Helper ---
+def load_bpe_tokenizer(vocab_path):
+    print(f"Loading BPE Tokenizer from {vocab_path}...")
+    with open(vocab_path, 'r', encoding='utf-8') as f:
+        vocab = json.load(f)
+    
+    # Invert vocab: bytes -> int
+    # The JSON keys are ints, values are strings (bytes decoded)
+    # We need to reconstruct the encoder: string -> int
+    # But since BPE merges are complex to reconstruct perfectly without the merges file,
+    # we will use a simplified lookup for this demo or fallback to char if complex.
+    # ACTUALLY: For proper BPE we need the merges. 
+    # Since train_tokenizer.py only saved vocab.json (token_id -> token_str), 
+    # we can only do DECODING easily. ENCODING requires multiple passes.
+    # FOR NOW: We will stick to Character Level if BPE merges are missing, 
+    # OR better: Update train_tokenizer.py to save merges.
+    # STRATEGY: For this iteration, we keep Char-Level until Phase 4.5 (Full BPE).
+    return None, None, None
+
 def train_job():
     print("Initializing Sovereign AI Training Job...")
     
@@ -40,16 +59,24 @@ def train_job():
     with open(data_path, 'r', encoding='utf-8') as f:
         text = f.read()
     
-    # 2. Tokenizer (Character Level)
+    # 2. Tokenizer Strategy
+    vocab_path = "models/jessica_tokenizer_vocab.json"
+    
+    # Default: Character Level
     chars = sorted(list(set(text)))
     vocab_size = len(chars)
-    print(f"Corpus Length: {len(text)} chars | Vocab Size: {vocab_size} unique chars")
-    
     stoi = { ch:i for i,ch in enumerate(chars) }
     itos = { i:ch for i,ch in enumerate(chars) }
     encode = lambda s: [stoi[c] for c in s]
     decode = lambda l: ''.join([itos[i] for i in l])
+    tokenizer_type = "Character-Level"
 
+    # Attempt BPE (Placeholder for Phase 4)
+    # if os.path.exists(vocab_path):
+    #    ... load BPE ...
+    
+    print(f"Tokenizer: {tokenizer_type} | Corpus: {len(text)} chars | Vocab: {vocab_size}")
+    
     # Train/Test Split
     data = torch.tensor(encode(text), dtype=torch.long)
     n = int(0.9 * len(data))
@@ -109,8 +136,11 @@ def train_job():
     # 5. Generate Proof of Intelligence
     print("\n--- Generating Sample Text ---")
     context = torch.zeros((1, 1), dtype=torch.long, device=device)
-    generated_indices = m.generate(context, max_new_tokens=200)[0].tolist()
-    print(decode(generated_indices))
+    try:
+        generated_indices = m.generate(context, max_new_tokens=200)[0].tolist()
+        print(decode(generated_indices))
+    except Exception as e:
+        print(f"Generation failed: {e}")
     print("------------------------------")
 
 if __name__ == "__main__":
