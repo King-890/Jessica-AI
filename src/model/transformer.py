@@ -3,6 +3,8 @@ import math
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+# Jessica-Zero Transformer Architecture (Pure PyTorch)
+
 
 class JessicaConfig:
     def __init__(self, vocab_size=50257, n_embd=384, n_head=6, n_layer=6, block_size=256, dropout=0.2):
