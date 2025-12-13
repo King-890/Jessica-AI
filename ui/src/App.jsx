@@ -15,6 +15,7 @@ import Dashboard from '@/pages/Dashboard'
 import IDEWorkspace from '@/pages/IDEWorkspace'
 import TokenManager from './components/TokenManager'
 import { activeTokenSource, isAuthRequired } from './utils/apiClient'
+import { SupabaseAdapter, supabase } from './services/supabase'
 
 const TABS = ['Home', 'Chat', 'Voice', 'Memory', 'Knowledge', 'Dashboard', 'IDE', 'Files', 'System', 'Terminal', 'Browser', 'Scheduler']
 
@@ -74,41 +75,80 @@ function App() {
 
   async function signInWithSupabase() {
     try {
-      const url = import.meta.env.VITE_SUPABASE_URL
-      const key = import.meta.env.VITE_SUPABASE_ANON_KEY
-      if (!url || !key) {
-        setAuthMsg('Supabase env missing')
-        return
-      }
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js')
-      const supabase = createClient(url, key)
+      // Use shared client directly
+
+
       const { data: { session }, error } = await supabase.auth.signInWithOAuth({ provider: 'github' })
       if (error) {
         setAuthMsg('OAuth failed')
         return
       }
+      // Note: OAuth redirect will reload page. We need to handle session check on mount.
+      // But for now keeping this logic
       if (session?.access_token) {
-        try { localStorage.setItem('supabase_token', session.access_token) } catch {}
         setAuthSource('supabase')
         setAuthMsg('Signed in')
         setTimeout(() => setAuthMsg(''), 1500)
-      } else {
-        setAuthMsg('No session returned')
       }
     } catch (e) {
       setAuthMsg('Supabase error')
     }
   }
-  
 
-  function sendMessage() {
+
+
+
+  // Subscription Effect
+  useEffect(() => {
+    let channel = null;
+    if (authSource === 'supabase') {
+      const convId = localStorage.getItem('supabase_conversation_id');
+      if (convId) {
+        console.log('Subscribing to chat:', convId);
+        channel = SupabaseAdapter.subscribeToMessages(convId, (newMsg) => {
+          // Avoid duplicating our own messages if we optimistically added them
+          // Ideally we check ID, but for now just append
+          if (newMsg.role === 'assistant') {
+            setMessages(prev => [...prev, { type: 'chat', role: 'assistant', message: newMsg.content }]);
+          }
+        });
+      }
+    }
+    return () => {
+      if (channel) channel.unsubscribe();
+    }
+  }, [authSource])
+
+  async function sendMessage() {
     const msg = input.trim()
     if (!msg) return
-    try {
-      wsRef.current?.send(JSON.stringify({ type: 'chat', payload: msg }))
-      setMessages((prev) => [...prev, { type: 'chat', input: msg }])
-      setInput('')
-    } catch (err) { console.debug('WS send error', err) }
+
+    setInput('') // Clear immediately for UX
+
+    if (authSource === 'supabase') {
+      // Supabase Mode
+      setMessages((prev) => [...prev, { type: 'chat', input: msg, role: 'user' }]) // Optimistic update
+      try {
+        // Use a static conversation ID for demo, or generate one if missing
+        let convId = localStorage.getItem('supabase_conversation_id');
+        if (!convId) {
+          convId = crypto.randomUUID();
+          localStorage.setItem('supabase_conversation_id', convId);
+        }
+
+        await SupabaseAdapter.sendMessage(msg, convId);
+        // Response and updates come via Subscription
+      } catch (err) {
+        console.error('Supabase send error', err);
+        setAuthMsg('Send failed');
+      }
+    } else {
+      // WebSocket Mode (Classic)
+      try {
+        wsRef.current?.send(JSON.stringify({ type: 'chat', payload: msg }))
+        setMessages((prev) => [...prev, { type: 'chat', input: msg }])
+      } catch (err) { console.debug('WS send error', err) }
+    }
   }
 
   return (
@@ -428,7 +468,7 @@ function TerminalPanel({ baseUrl }) {
         </label>
         <button onClick={run}>Run</button>
       </div>
-  <pre className="messages" style={{ whiteSpace: 'pre-wrap' }}>{out}</pre>
+      <pre className="messages" style={{ whiteSpace: 'pre-wrap' }}>{out}</pre>
     </div>
   )
 }
@@ -604,7 +644,7 @@ function SchedulerPanel({ baseUrl }) {
               <div key={r.id} className="msg">
                 <span className="label">{r.ts}</span>
                 <pre style={{ whiteSpace: 'pre-wrap' }}>
-{`Return: ${r.returncode}\nSTDOUT:\n${r.stdout || ''}\nSTDERR:\n${r.stderr || ''}`}
+                  {`Return: ${r.returncode}\nSTDOUT:\n${r.stdout || ''}\nSTDERR:\n${r.stderr || ''}`}
                 </pre>
               </div>
             ))}
