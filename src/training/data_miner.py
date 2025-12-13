@@ -4,7 +4,47 @@ import time
 import requests
 import re
 from bs4 import BeautifulSoup
-from src.backend.ai_core import google_search
+import os
+import time
+import requests
+import re
+from bs4 import BeautifulSoup
+# from src.backend.ai_core import google_search # Remove dependency
+
+# Standalone Google Search simple implementation
+def google_search(query):
+    try:
+        from serpapi import GoogleSearch
+        # Note: This requires serpapi pkg or we use the duckduckgo fallback if simple
+        # For this Miner, let's use the SerpApi library compatible logic or basic DDG
+        pass
+    except:
+        pass
+    # FALLBACK: Use a robust free search or just the SerpAPI standard if installed
+    # Since we installed 'google-search-results', we use that.
+    try:
+        from serpapi import GoogleSearch
+        api_key = os.getenv("GOOGLE_CSE_API_KEY") # Reuse Search Key or new one
+        # If no key, we might fail. Let's assume user has key or use a public scrape hack.
+        # Actually, let's just use the serpapi logic properly.
+        # But wait, the user installed 'google-search-results'.
+        if not api_key: return "No API Key"
+        
+        params = {
+            "q": query,
+            "api_key": api_key,
+            "engine": "google"
+        }
+        search = GoogleSearch(params)
+        results = search.get_dict()
+        # Parse organic results
+        summary = ""
+        if "organic_results" in results:
+            for r in results["organic_results"]:
+                summary += r.get("link", "") + " "
+        return summary
+    except Exception as e:
+        return str(e)
 
 # Target Corpus Size: 100MB
 CORPUS_FILE = "training_data/corpus.txt"
